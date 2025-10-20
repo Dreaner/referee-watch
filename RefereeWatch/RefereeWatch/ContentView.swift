@@ -9,7 +9,6 @@ import SwiftUI
 import UIKit
 import Combine
 
-
 // MARK: - Color Codable 包装
 struct ColorData: Codable {
     var red: CGFloat
