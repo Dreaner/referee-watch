@@ -25,11 +25,11 @@ class MatchManager: ObservableObject {
     func startMatch() {
         guard !isRunning else { return }
         isRunning = true
-        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-            self.elapsedTime += 1
+        timer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { _ in
+            self.elapsedTime += 0.01
         }
     }
-
+    
     func pauseMatch() {
         isRunning = false
         timer?.invalidate()

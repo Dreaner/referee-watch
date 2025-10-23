@@ -14,8 +14,9 @@ struct ContentView: View {
         VStack(spacing: 10) {
             Text(formatTime(matchManager.elapsedTime))
                 .font(.system(size: 28, weight: .bold, design: .monospaced))
-                .padding(.top, 10)
-
+                .padding(.top, 6)
+            
+            // Board
             HStack {
                 VStack {
                     Text("HOME")
@@ -66,11 +67,13 @@ struct ContentView: View {
             SubstitutionSheet(matchManager: matchManager)
         }
     }
-
+    
     private func formatTime(_ time: TimeInterval) -> String {
-        let minutes = Int(time) / 60
-        let seconds = Int(time) % 60
-        return String(format: "%02d:%02d", minutes, seconds)
+        let hundredths = Int((time * 100).rounded())
+        let minutes = hundredths / 6000
+        let seconds = (hundredths / 100) % 60
+        let centi = hundredths % 100
+        return String(format: "%02d:%02d.%02d", minutes, seconds, centi)
     }
 }
 
