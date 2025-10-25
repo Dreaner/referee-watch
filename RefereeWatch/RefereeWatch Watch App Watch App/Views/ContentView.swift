@@ -12,6 +12,8 @@ struct ContentView: View {
 
     var body: some View {
         VStack(spacing: 10) {
+            
+            // Timer
             Text(formatTime(matchManager.elapsedTime))
                 .font(.system(size: 28, weight: .bold, design: .monospaced))
                 .padding(.top, 6)
@@ -34,6 +36,7 @@ struct ContentView: View {
                 }
             }
 
+            // Three events: goal, card, exchange
             HStack(spacing: 8) {
                 Button(action: { matchManager.isGoalSheetPresented = true }) {
                     Image(systemName: "soccerball")
@@ -47,6 +50,7 @@ struct ContentView: View {
             }
             .font(.title3)
 
+            // Start and End
             HStack(spacing: 10) {
                 Button(matchManager.isRunning ? "Pause" : "Start") {
                     matchManager.isRunning ? matchManager.pauseMatch() : matchManager.startMatch()
@@ -68,6 +72,7 @@ struct ContentView: View {
         }
     }
     
+    // Format of Timer: 00:00.00
     private func formatTime(_ time: TimeInterval) -> String {
         let hundredths = Int((time * 100).rounded())
         let minutes = hundredths / 6000
