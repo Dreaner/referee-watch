@@ -17,7 +17,7 @@ struct GoalTypeSheet: View {
     var body: some View {
         VStack {
             if step == 1 {
-                Text("选择进球类型")
+                Text("Choose Goal Type")
                 ForEach(GoalType.allCases, id: \.self) { type in
                     Button(type.rawValue) {
                         selectedGoalType = type

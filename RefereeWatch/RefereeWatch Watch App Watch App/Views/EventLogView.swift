@@ -44,7 +44,7 @@ struct EventLogView: View {
     private func eventDescription(_ event: MatchEvent) -> String {
         switch event.type {
         case .goal:
-            return "\(event.team.capitalized) Goal - #\(event.playerNumber ?? 0)"
+            return "\(event.team.capitalized) \(event.goalType?.rawValue ?? "") - #\(event.playerNumber ?? 0)"
         case .card:
             return "\(event.team.capitalized) \(event.cardType?.rawValue ?? "") Card - #\(event.playerNumber ?? 0)"
         case .substitution:

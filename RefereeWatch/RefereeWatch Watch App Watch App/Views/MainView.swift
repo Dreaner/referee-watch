@@ -14,7 +14,7 @@ struct MainView: View {
     var body: some View {
         TabView {
             // 📄 第1页：计时器 + 操作面板
-            ContentView(matchManager: matchManager)
+            MatchView(matchManager: matchManager)
                 .tag(0)
 
             // 📄 第2页：事件记录（只读）

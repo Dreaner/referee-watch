@@ -17,7 +17,7 @@ struct CardTypeSheet: View {
     var body: some View {
         VStack {
             if step == 1 {
-                Text("选择牌类型")
+                Text("Choose Card Type")
                 ForEach(CardType.allCases, id: \.self) { type in
                     Button(type.rawValue) {
                         selectedCardType = type

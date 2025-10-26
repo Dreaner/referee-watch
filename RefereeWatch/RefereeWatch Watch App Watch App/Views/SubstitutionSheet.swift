@@ -21,12 +21,12 @@ struct SubstitutionSheet: View {
                     step = 2
                 }
             } else if step == 2 {
-                Text("下场球员号码")
+                Text("Player Out")
                 NumberInputSheet(selectedNumber: $playerOut) {
                     step = 3
                 }
             } else if step == 3 {
-                Text("上场球员号码")
+                Text("Player In")
                 NumberInputSheet(selectedNumber: $playerIn) {
                     if let team = selectedTeam, let out = playerOut, let inn = playerIn {
                         matchManager.addSubstitution(team: team, playerOut: out, playerIn: inn)

@@ -1,5 +1,5 @@
 //
-//  ContentView.swift
+//  MatchView.swift
 //  RefereeWatch Watch App Watch App
 //
 //  Created by Xingnan Zhu on 14/10/25.
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct ContentView: View {
+struct MatchView: View {
     @StateObject var matchManager = MatchManager()
     
     // MARK: - 主界面

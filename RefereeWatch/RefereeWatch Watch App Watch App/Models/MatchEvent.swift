@@ -7,27 +7,27 @@
 
 import Foundation
 
-// MARK: - 进球类型
+// MARK: - Type of Goal
 enum GoalType: String, Codable, CaseIterable {
-    case normal = "普通进球"
-    case penalty = "点球"
-    case ownGoal = "乌龙球"
+    case normal = "Goal"
+    case penalty = "Goal(Penalty)"
+    case ownGoal = "Own Goal"
 }
 
-// MARK: - 红黄牌类型
+// MARK: - Red Card or Yellow Card?
 enum CardType: String, Codable, CaseIterable {
-    case yellow = "黄牌"
-    case red = "红牌"
+    case yellow = "Yellow"
+    case red = "Red"
 }
 
-// MARK: - 事件类型
+// MARK: - Three events
 enum EventType: String, Codable {
     case goal
     case card
     case substitution
 }
 
-// MARK: - 比赛事件结构
+// MARK: - Match Event Detail
 struct MatchEvent: Identifiable, Codable {
     var id = UUID()
     var type: EventType

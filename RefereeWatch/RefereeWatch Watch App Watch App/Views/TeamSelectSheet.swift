@@ -13,13 +13,13 @@ struct TeamSelectSheet: View {
 
     var body: some View {
         VStack {
-            Text("选择队伍")
+            Text("Choose Team")
             HStack {
-                Button("主队") {
+                Button("Home") {
                     selectedTeam = "home"
                     onNext()
                 }
-                Button("客队") {
+                Button("Away") {
                     selectedTeam = "away"
                     onNext()
                 }
@@ -36,10 +36,10 @@ struct NumberInputSheet: View {
 
     var body: some View {
         VStack {
-            Text("选择球员号码")
+            Text("Choose Player No.")
                 .font(.headline)
 
-            Picker("号码", selection: $input) {
+            Picker("No.", selection: $input) {
                 ForEach(0..<100) { num in
                     Text("\(num)").tag(num)
                 }
@@ -47,7 +47,7 @@ struct NumberInputSheet: View {
             .labelsHidden()
             .frame(height: 80)
 
-            Button("确定") {
+            Button("Enter") {
                 selectedNumber = input
                 onConfirm()
             }
