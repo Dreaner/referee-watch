@@ -8,31 +8,27 @@
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject private var matchManager = MatchManager()
-
+    @StateObject var matchManager = MatchManager()
+    
+    // MARK: - 主界面
     var body: some View {
         VStack(spacing: 10) {
+            Spacer()
             
             // Timer
             Text(formatTime(matchManager.elapsedTime))
                 .font(.system(size: 28, weight: .bold, design: .monospaced))
-                .padding(.top, 6)
             
             // Board
             HStack {
                 VStack {
-                    Text("HOME")
-                        .font(.caption2)
-                    Text("\(matchManager.homeScore)")
-                        .font(.title2)
+                    Text("HOME").font(.caption2)
+                    Text("\(matchManager.homeScore)").font(.title2)
                 }
-                Text("-")
-                    .font(.title2)
+                Text("-").font(.title2)
                 VStack {
-                    Text("AWAY")
-                        .font(.caption2)
-                    Text("\(matchManager.awayScore)")
-                        .font(.title2)
+                    Text("AWAY").font(.caption2)
+                    Text("\(matchManager.awayScore)").font(.title2)
                 }
             }
 
@@ -59,20 +55,25 @@ struct ContentView: View {
                     matchManager.resetMatch()
                 }
             }
-            .padding(.top, 5)
+            Spacer()
         }
+        .padding(.horizontal, 8)
+        
+        // “进球”小弹窗入口
         .sheet(isPresented: $matchManager.isGoalSheetPresented) {
             GoalTypeSheet(matchManager: matchManager)
         }
+        // “红黄牌”小弹窗入口
         .sheet(isPresented: $matchManager.isCardSheetPresented) {
             CardTypeSheet(matchManager: matchManager)
         }
+        // “换人”小弹窗入口
         .sheet(isPresented: $matchManager.isSubstitutionSheetPresented) {
             SubstitutionSheet(matchManager: matchManager)
         }
     }
     
-    // Format of Timer: 00:00.00
+    // MARK: - 时间格式 00:00.00
     private func formatTime(_ time: TimeInterval) -> String {
         let hundredths = Int((time * 100).rounded())
         let minutes = hundredths / 6000
@@ -80,10 +81,5 @@ struct ContentView: View {
         let centi = hundredths % 100
         return String(format: "%02d:%02d.%02d", minutes, seconds, centi)
     }
-}
-
-// MARK: - Preview
-#Preview {
-    ContentView()
 }
 

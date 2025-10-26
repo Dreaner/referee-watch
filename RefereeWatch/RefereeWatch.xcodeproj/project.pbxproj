@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		AD4088172EAB9CEE00237A36 /* Draft.md in Resources */ = {isa = PBXBuildFile; fileRef = AD4088162EAB9CE400237A36 /* Draft.md */; };
+		AD4088172EAB9CEE00237A36 /* TODO.md in Resources */ = {isa = PBXBuildFile; fileRef = AD4088162EAB9CE400237A36 /* TODO.md */; };
 		AD59980D2E9EF21600D6A19A /* RefereeWatch Watch App Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = AD5998032E9EF21500D6A19A /* RefereeWatch Watch App Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
@@ -36,7 +36,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		AD4088162EAB9CE400237A36 /* Draft.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Draft.md; sourceTree = "<group>"; };
+		AD4088162EAB9CE400237A36 /* TODO.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = TODO.md; sourceTree = "<group>"; };
 		AD5997BD2E9EEF4A00D6A19A /* RefereeWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RefereeWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AD5998032E9EF21500D6A19A /* RefereeWatch Watch App Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "RefereeWatch Watch App Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -75,7 +75,7 @@
 		AD5997B42E9EEF4A00D6A19A = {
 			isa = PBXGroup;
 			children = (
-				AD4088162EAB9CE400237A36 /* Draft.md */,
+				AD4088162EAB9CE400237A36 /* TODO.md */,
 				AD5997BF2E9EEF4A00D6A19A /* RefereeWatch */,
 				AD5998042E9EF21500D6A19A /* RefereeWatch Watch App Watch App */,
 				AD5997BE2E9EEF4A00D6A19A /* Products */,
@@ -183,7 +183,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AD4088172EAB9CEE00237A36 /* Draft.md in Resources */,
+				AD4088172EAB9CEE00237A36 /* TODO.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

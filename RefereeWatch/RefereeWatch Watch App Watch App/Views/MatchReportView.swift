@@ -5,109 +5,165 @@
 //  Created by Xingnan Zhu on 24/10/25.
 //
 
-// 在 Apple Watch 上显示比赛统计数据
+
+// ✅ 用途：
+// 这是一个通用的数据展示模板，用来展示某场比赛的详细统计（进球、红黄牌、换人、裁判留言等）。
+
+// ✅ 当前功能：
+// 1.静态演示数据（Team A / Team B）。
+// 2.可以导出 CSV 文件到 Watch 临时目录。
+// 3.没有与比赛流程或按钮跳转连接。
+
+// ✅ 适用场景：
+// 查看历史比赛报告 / 读取已保存的报告 / 测试数据导出功能。
 
 
 import SwiftUI
 
 struct MatchReportView: View {
-    
-    // 模拟一场比赛
-    @State private var report = MatchReport(
-        homeTeam: "Team A",
-        awayTeam: "Team B",
-        homeScore: 2,
-        awayScore: 1,
-        goals: [
-            GoalEvent(minute: 12, team: "Team A", number: 2, player: "Player 9", type: "普通进球"),
-            GoalEvent(minute: 45, team: "Team A", number: 2, player: "Player 10", type: "点球"),
-            GoalEvent(minute: 68, team: "Team B", number: 2, player: "Player 7", type: "普通进球")
-        ],
-        cards: [
-            CardEvent(minute: 30, team: "Team A", number: 2, player: "Player 6", cardType: "黄牌", reason: "拖延时间"),
-            CardEvent(minute: 75, team: "Team B", number: 2, player: "Player 4", cardType: "红牌", reason: "暴力行为")
-        ],
-        substitutions: [
-            SubstitutionEvent(minute: 60, team: "Team A", numberOut: 3, playerOut: "Player 8", numberIn: 4, playerIn: "Player 11")
-        ],
-        refereeNote: "场地良好，比赛顺利进行。"
-    )
+    let report: MatchReport
+    @State private var refereeNote: String = ""   // 裁判留言（本地输入）
+    @State private var isNoteInputPresented = false
     
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("\(report.homeTeam) \(report.homeScore) : \(report.awayScore) \(report.awayTeam)")
+            VStack(alignment: .leading, spacing: 10) {
+
+                // 标题
+                Text("Match Details")
                     .font(.headline)
-                
-                Section(header: Text("⚽ 进球")) {
-                    ForEach(report.goals) { goal in
-                        Text("\(goal.minute)' \(goal.team) - # \(goal.number) \(goal.player) (\(goal.type))")
+                    .padding(.bottom, 4)
+
+                // 比分
+                HStack {
+                    Text(report.homeTeam)
+                        .font(.title3)
+                    Spacer()
+                    Text("\(report.homeScore) - \(report.awayScore)")
+                        .font(.title3)
+                        .fontWeight(.bold)
+                    Spacer()
+                    Text(report.awayTeam)
+                        .font(.title3)
+                }
+                Divider()
+
+                // ⚽️ 进球事件
+                Section(header: Text("Goals").font(.subheadline).bold()) {
+                    if report.events.filter({ $0.type == .goal }).isEmpty {
+                        Text("No goals recorded.")
                             .font(.footnote)
+                            .foregroundColor(.gray)
+                    } else {
+                        ForEach(report.events.filter { $0.type == .goal }) { event in
+                            HStack {
+                                Text(goalDescription(event))
+                                    .font(.footnote)
+                                Spacer()
+                                Text(formatTime(event.timestamp))
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
                     }
                 }
-                
-                Section(header: Text("🟥🟨 红黄牌")) {
-                    ForEach(report.cards) { card in
-                        Text("\(card.minute)' \(card.team) - # \(card.number) \(card.player) \(card.cardType)")
+
+                // 🟥🟨 红黄牌
+                Section(header: Text("Cards").font(.subheadline).bold().padding(.top, 6)) {
+                    if report.events.filter({ $0.type == .card }).isEmpty {
+                        Text("No cards recorded.")
                             .font(.footnote)
+                            .foregroundColor(.gray)
+                    } else {
+                        ForEach(report.events.filter { $0.type == .card }) { event in
+                            HStack {
+                                Text(cardDescription(event))
+                                    .font(.footnote)
+                                Spacer()
+                                Text(formatTime(event.timestamp))
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
                     }
                 }
-                
-                Section(header: Text("🔁 换人")) {
-                    ForEach(report.substitutions) { sub in
-                        Text("\(sub.minute)' \(sub.team): # \(sub.numberOut) \(sub.playerOut) → # \(sub.numberIn) \(sub.playerIn)")
+
+                // 🔄 换人
+                Section(header: Text("Substitutions").font(.subheadline).bold().padding(.top, 6)) {
+                    if report.events.filter({ $0.type == .substitution }).isEmpty {
+                        Text("No substitutions recorded.")
                             .font(.footnote)
+                            .foregroundColor(.gray)
+                    } else {
+                        ForEach(report.events.filter { $0.type == .substitution }) { event in
+                            HStack {
+                                Text(substitutionDescription(event))
+                                    .font(.footnote)
+                                Spacer()
+                                Text(formatTime(event.timestamp))
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
                     }
                 }
-                
-                if let note = report.refereeNote, !note.isEmpty {
-                    Section(header: Text("🗒️ 裁判留言")) {
-                        Text(note).font(.footnote)
+
+                // 🧾 裁判留言
+                Section(header: Text("Referee Notes").font(.subheadline).bold().padding(.top, 6)) {
+                    Button(action: {
+                        isNoteInputPresented = true
+                    }) {
+                        HStack {
+                            Text(refereeNote.isEmpty ? "Add a note..." : refereeNote)
+                                .font(.footnote)
+                                .lineLimit(2)
+                            Spacer()
+                            Image(systemName: "pencil")
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .sheet(isPresented: $isNoteInputPresented) {
+                        NoteInputView(refereeNote: $refereeNote)
                     }
                 }
-                
-                Button("📤 导出 CSV") {
-                    exportCSV(report: report)
+
+                // 📤 导出按钮
+                Button("Export to iPhone") {
+                    // 未来整合 WatchConnectivityManager 导出功能
                 }
-                .buttonStyle(.borderedProminent)
-                .padding(.top, 8)
+                .padding(.top, 4)
             }
             .padding()
         }
+        .navigationTitle("Match Report")
     }
-    
-    func exportCSV(report: MatchReport) {
-        let csvString = generateCSV(from: report)
-        let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("MatchReport.csv")
-        do {
-            try csvString.write(to: fileURL, atomically: true, encoding: .utf8)
-            print("✅ CSV 已保存：\(fileURL)")
-        } catch {
-            print("❌ 导出失败：\(error)")
+
+    // MARK: - Event Descriptions
+
+    private func goalDescription(_ event: MatchEvent) -> String {
+        let player = event.playerNumber.map { "#\($0)" } ?? ""
+        let goalType = event.goalType?.rawValue ?? "Goal"
+        return "\(event.team.capitalized) \(goalType) \(player)"
+    }
+
+    private func cardDescription(_ event: MatchEvent) -> String {
+        let player = event.playerNumber.map { "#\($0)" } ?? ""
+        let card = event.cardType?.rawValue ?? "Card"
+        return "\(event.team.capitalized) \(card) \(player)"
+    }
+
+    private func substitutionDescription(_ event: MatchEvent) -> String {
+        if let out = event.playerOut, let `in` = event.playerIn {
+            return "\(event.team.capitalized) Sub: #\(out) → #\(`in`)"
+        } else {
+            return "\(event.team.capitalized) Substitution"
         }
     }
-    
-    func generateCSV(from report: MatchReport) -> String {
-        var csv = "项目,内容\n"
-        csv += "球队,\(report.homeTeam) vs \(report.awayTeam)\n"
-        csv += "比分,\(report.homeScore):\(report.awayScore)\n\n"
-        
-        csv += "进球记录\n时间,球队,号码,球员,类型\n"
-        for g in report.goals {
-            csv += "\(g.minute),\(g.team),\(g.number),\(g.player),\(g.type)\n"
-        }
-        csv += "\n红黄牌记录\n时间,球队,号码,球员,牌,原因\n"
-        for c in report.cards {
-            csv += "\(c.minute),\(c.team),\(c.number),\(c.player),\(c.cardType),\(c.reason ?? "-")\n"
-        }
-        csv += "\n换人记录\n时间,球队,下场号码,下场球员,上场号码,上场球员\n"
-        for s in report.substitutions {
-            csv += "\(s.minute),\(s.team),\(s.numberOut),\(s.playerOut),\(s.numberIn),\(s.playerIn)\n"
-        }
-        if let note = report.refereeNote {
-            csv += "\n裁判留言,\(note)\n"
-        }
-        return csv
+
+    private func formatTime(_ time: TimeInterval) -> String {
+        let minutes = Int(time) / 60
+        let seconds = Int(time) % 60
+        return String(format: "%02d:%02d", minutes, seconds)
     }
 }
 
