@@ -10,12 +10,14 @@
 
 import Foundation
 
-struct MatchReport: Identifiable, Codable {
-    let id = UUID()
-    let homeTeam: String
-    let awayTeam: String
-    let homeScore: Int
-    let awayScore: Int
-    let events: [MatchEvent]
+struct MatchReport: Codable {
+    var date: Date
+    var homeTeam: String
+    var awayTeam: String
+    var homeScore: Int
+    var awayScore: Int
+    var firstHalfDuration: TimeInterval
+    var secondHalfDuration: TimeInterval
+    var events: [MatchEvent]
 }
 

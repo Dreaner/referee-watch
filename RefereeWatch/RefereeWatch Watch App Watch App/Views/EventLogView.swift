@@ -74,8 +74,10 @@ struct EventLogView: View {
     
     // MARK: - Export Function
     private func exportToiPhone() {
-        // Send match data to iPhone using WatchConnectivityManager
-        WatchConnectivityManager.shared.sendMatchEvents(matchManager.events)
+        let report = matchManager.generateMatchReport()
+        WatchConnectivityManager.shared.sendWatchReport(report)
+        // Optional feedback
+        WKInterfaceDevice.current().play(.click)
     }
 }
 

@@ -6,74 +6,98 @@
 //
 
 import SwiftUI
+import WatchKit
 
 struct MatchView: View {
     @StateObject var matchManager = MatchManager()
+    @State private var feedbackMessage: String = ""
+    @State private var showFeedback: Bool = false
     
-    // MARK: - 主界面
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 5) {
             Spacer()
+            
+            // Feedback text
+            if showFeedback {
+                Text(feedbackMessage)
+                    .font(.caption2)
+                    .foregroundColor(.green)
+                    .transition(.opacity)
+                    .padding(.top, 4)
+            }
+            
+            // Half
+            Text("Half \(matchManager.currentHalf)")
+                .font(.caption2)
+                .foregroundColor(.secondary)
             
             // Timer
             Text(formatTime(matchManager.elapsedTime))
                 .font(.system(size: 28, weight: .bold, design: .monospaced))
             
-            // Board
+            // Scoreboard
             HStack {
                 VStack {
-                    Text("HOME").font(.caption2)
+                    Text(matchManager.homeTeamName).font(.caption2)
                     Text("\(matchManager.homeScore)").font(.title2)
                 }
                 Text("-").font(.title2)
                 VStack {
-                    Text("AWAY").font(.caption2)
+                    Text(matchManager.awayTeamName).font(.caption2)
                     Text("\(matchManager.awayScore)").font(.title2)
                 }
             }
 
-            // Three events: goal, card, exchange
+            // Event Buttons
             HStack(spacing: 8) {
-                Button(action: { matchManager.isGoalSheetPresented = true }) {
-                    Image(systemName: "soccerball")
-                }
-                Button(action: { matchManager.isCardSheetPresented = true }) {
-                    Image(systemName: "rectangle.fill.on.rectangle.fill")
-                }
-                Button(action: { matchManager.isSubstitutionSheetPresented = true }) {
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                }
+                Button { matchManager.isGoalSheetPresented = true }
+                label: { Image(systemName: "soccerball") }
+
+                Button { matchManager.isCardSheetPresented = true }
+                label: { Image(systemName: "rectangle.fill.on.rectangle.fill") }
+
+                Button { matchManager.isSubstitutionSheetPresented = true }
+                label: { Image(systemName: "arrow.triangle.2.circlepath") }
             }
             .font(.title3)
 
-            // Start and End
-            HStack(spacing: 10) {
+            // Control Buttons
+            HStack(spacing: 8) {
                 Button(matchManager.isRunning ? "Pause" : "Start") {
-                    matchManager.isRunning ? matchManager.pauseMatch() : matchManager.startMatch()
+                    if matchManager.isRunning {
+                        matchManager.pauseMatch()
+                        WKInterfaceDevice.current().play(.click)
+                    } else {
+                        matchManager.startMatch()
+                        triggerFeedback("Kick-off")
+                    }
                 }
+                
+                Button("End Half") {
+                    matchManager.endHalf()
+                    triggerFeedback("Halftime")
+                }
+                
                 Button("End") {
                     matchManager.resetMatch()
+                    triggerFeedback("Full Time")
                 }
             }
             Spacer()
         }
-        .padding(.horizontal, 8)
-        
-        // “进球”小弹窗入口
+        // Sheets with feedback on disappear
         .sheet(isPresented: $matchManager.isGoalSheetPresented) {
             GoalTypeSheet(matchManager: matchManager)
         }
-        // “红黄牌”小弹窗入口
         .sheet(isPresented: $matchManager.isCardSheetPresented) {
             CardTypeSheet(matchManager: matchManager)
         }
-        // “换人”小弹窗入口
         .sheet(isPresented: $matchManager.isSubstitutionSheetPresented) {
             SubstitutionSheet(matchManager: matchManager)
         }
+        .animation(.easeInOut, value: showFeedback)
     }
     
-    // MARK: - 时间格式 00:00.00
     private func formatTime(_ time: TimeInterval) -> String {
         let hundredths = Int((time * 100).rounded())
         let minutes = hundredths / 6000
@@ -81,5 +105,19 @@ struct MatchView: View {
         let centi = hundredths % 100
         return String(format: "%02d:%02d.%02d", minutes, seconds, centi)
     }
+    
+    private func triggerFeedback(_ message: String) {
+        feedbackMessage = message
+        showFeedback = true
+        WKInterfaceDevice.current().play(.click)
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            withAnimation { showFeedback = false }
+        }
+    }
+}
+
+#Preview {
+    MatchView()
 }
 

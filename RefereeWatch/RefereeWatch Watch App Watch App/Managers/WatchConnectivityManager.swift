@@ -8,70 +8,66 @@
 // Watch ↔ iPhone 传输
 
 import WatchConnectivity
-import Foundation
+import SwiftUI
+import Combine
 
-
-final class WatchConnectivityManager: NSObject, WCSessionDelegate {
-
+class WatchConnectivityManager: NSObject, WCSessionDelegate, ObservableObject {
     static let shared = WatchConnectivityManager()
-    private override init() {
-        super.init()
-        activateSession()
+    
+    // Optional: 发布上次发送的报告，可供界面刷新
+    @Published var lastSentReport: MatchReport? = nil
+    
+    private override init() {}
+    
+    private var session: WCSession? {
+        WCSession.isSupported() ? WCSession.default : nil
     }
-
-    private let session: WCSession = WCSession.default
-
-    // MARK: - Activate WatchConnectivity Session
-    private func activateSession() {
-        guard WCSession.isSupported() else { return }
+    
+    // MARK: - 激活 Session
+    func activate() {
+        guard let session = session else { return }
         session.delegate = self
         session.activate()
     }
-
-    // MARK: - Send Match Events to iPhone
-    func sendMatchEvents(_ events: [MatchEvent]) {
-        // Convert events to a dictionary array
-        let eventDicts = events.map { event in
-            return [
-                "id": event.id.uuidString,
-                "type": event.type.rawValue,
-                "team": event.team,
-                "playerNumber": event.playerNumber ?? 0,
-                "goalType": event.goalType?.rawValue ?? "",
-                "cardType": event.cardType?.rawValue ?? "",
-                "playerOut": event.playerOut ?? 0,
-                "playerIn": event.playerIn ?? 0,
-                "timestamp": event.timestamp
-            ] as [String : Any]
+    
+    // MARK: - 发送完整 MatchReport
+    func sendWatchReport(_ report: MatchReport) {
+        guard let session = session, session.isReachable else {
+            print("❌ iPhone not reachable")
+            return
         }
-
-        let payload: [String: Any] = [
-            "matchEvents": eventDicts,
-            "timestamp": Date().timeIntervalSince1970
-        ]
-
-        // Send data to iPhone
-        if session.isReachable {
-            session.sendMessage(payload, replyHandler: nil) { error in
-                print("Error sending match events: \(error.localizedDescription)")
-            }
-        } else {
-            print("iPhone is not reachable")
+        
+        do {
+            let data = try JSONEncoder().encode(report)
+            let message: [String: Any] = ["matchReport": data]
+            
+            session.sendMessage(message, replyHandler: { _ in
+                print("✅ Match report sent successfully")
+            }, errorHandler: { error in
+                print("❌ Failed to send match report: \(error)")
+            })
+            
+            // 更新发布属性
+            lastSentReport = report
+        } catch {
+            print("❌ Encoding error: \(error)")
         }
     }
-
-    // MARK: - WCSessionDelegate methods
+    
+    // MARK: - WCSessionDelegate
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
         if let error = error {
-            print("WCSession activation failed: \(error.localizedDescription)")
+            print("❌ WCSession activation failed: \(error)")
         } else {
-            print("WCSession activated successfully: \(activationState.rawValue)")
+            print("✅ WCSession activated with state: \(activationState.rawValue)")
         }
     }
-
-    // Required for iOS <-> watchOS message handling
+    
     func sessionReachabilityDidChange(_ session: WCSession) {
-        print("iPhone reachability changed: \(session.isReachable)")
+        print("📡 Reachability changed: \(session.isReachable)")
     }
+    
+    // Optional: 其他 delegate 方法可根据需要实现
 }
+
 
