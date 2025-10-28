@@ -41,7 +41,26 @@
 		AD5998032E9EF21500D6A19A /* RefereeWatch Watch App Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "RefereeWatch Watch App Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		AD4088452EB1183600237A36 /* Exceptions for "Shared" folder in "RefereeWatch Watch App Watch App" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Models/MatchEvent.swift,
+				Models/MatchReport.swift,
+			);
+			target = AD5998022E9EF21500D6A19A /* RefereeWatch Watch App Watch App */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		AD4088422EB1181400237A36 /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				AD4088452EB1183600237A36 /* Exceptions for "Shared" folder in "RefereeWatch Watch App Watch App" target */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
 		AD5997BF2E9EEF4A00D6A19A /* RefereeWatch */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = RefereeWatch;
@@ -75,10 +94,11 @@
 		AD5997B42E9EEF4A00D6A19A = {
 			isa = PBXGroup;
 			children = (
-				AD4088162EAB9CE400237A36 /* TODO.md */,
+				AD5997BE2E9EEF4A00D6A19A /* Products */,
 				AD5997BF2E9EEF4A00D6A19A /* RefereeWatch */,
 				AD5998042E9EF21500D6A19A /* RefereeWatch Watch App Watch App */,
-				AD5997BE2E9EEF4A00D6A19A /* Products */,
+				AD4088422EB1181400237A36 /* Shared */,
+				AD4088162EAB9CE400237A36 /* TODO.md */,
 			);
 			sourceTree = "<group>";
 		};
@@ -109,6 +129,7 @@
 				AD59980C2E9EF21600D6A19A /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
+				AD4088422EB1181400237A36 /* Shared */,
 				AD5997BF2E9EEF4A00D6A19A /* RefereeWatch */,
 			);
 			name = RefereeWatch;

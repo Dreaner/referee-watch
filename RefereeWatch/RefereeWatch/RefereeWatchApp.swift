@@ -11,7 +11,7 @@ import SwiftUI
 struct RefereeWatchApp: App {
     var body: some Scene {
         WindowGroup {
-            MatchListView()
+            MainView()
         }
     }
 }
