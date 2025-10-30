@@ -5,47 +5,106 @@
 //  Created by Xingnan Zhu on 28/10/25.
 //
 
-//
-//  MatchHistoryView.swift
-//  RefereeWatch
-//
-
 import SwiftUI
 
 struct MatchHistoryView: View {
     @ObservedObject var connectivityManager: iPhoneConnectivityManager
     @State private var showingNewMatchView = false
+    @State private var searchText = ""
+    @State private var startDate: Date? = nil
+    @State private var endDate: Date? = nil
+
+    // MARK: - 过滤后的比赛列表
+    private var filteredReports: [MatchReport] {
+        connectivityManager.allReports.filter { report in
+            // 日期范围筛选
+            let dateMatch: Bool = {
+                if let start = startDate, let end = endDate {
+                    return report.date >= start && report.date <= end
+                } else if let start = startDate {
+                    return report.date >= start
+                } else if let end = endDate {
+                    return report.date <= end
+                } else {
+                    return true
+                }
+            }()
+
+            // 搜索筛选
+            let searchMatch: Bool = {
+                if searchText.isEmpty { return true }
+                return report.homeTeam.localizedCaseInsensitiveContains(searchText) ||
+                    report.awayTeam.localizedCaseInsensitiveContains(searchText) ||
+                    "\(report.homeScore)-\(report.awayScore)".contains(searchText)
+            }()
+
+            return dateMatch && searchMatch
+        }
+    }
 
     var body: some View {
         NavigationView {
-            List {
-                if connectivityManager.allReports.isEmpty {
-                    Text("No match reports yet.")
-                        .foregroundColor(.gray)
-                        .font(.footnote)
-                        .padding()
-                } else {
-                    // 使用 date 作为唯一 id
-                    ForEach(connectivityManager.allReports, id: \.date) { report in
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                Text("\(report.homeTeam) vs \(report.awayTeam)")
-                                    .font(.headline)
-                                Spacer()
-                                Text("\(report.homeScore) - \(report.awayScore)")
-                                    .font(.subheadline)
-                                    .bold()
+            VStack(spacing: 10) {
+                // MARK: - 日期筛选栏
+                HStack {
+                    Text("Date:")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    DatePicker(
+                        "",
+                        selection: Binding(
+                            get: { startDate ?? Date() },
+                            set: { startDate = $0 }
+                        ),
+                        displayedComponents: .date
+                    )
+                    .labelsHidden()
+
+                    Text("–")
+
+                    DatePicker(
+                        "",
+                        selection: Binding(
+                            get: { endDate ?? Date() },
+                            set: { endDate = $0 }
+                        ),
+                        displayedComponents: .date
+                    )
+                    .labelsHidden()
+                }
+                .padding(.horizontal)
+
+                // MARK: - 比赛列表
+                List {
+                    if filteredReports.isEmpty {
+                        Text("No match reports found.")
+                            .foregroundColor(.gray)
+                            .font(.footnote)
+                            .padding()
+                    } else {
+                        ForEach(filteredReports, id: \.date) { report in
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack {
+                                    Text("\(report.homeTeam) vs \(report.awayTeam)")
+                                        .font(.headline)
+                                    Spacer()
+                                    Text("\(report.homeScore) - \(report.awayScore)")
+                                        .font(.subheadline)
+                                        .bold()
+                                }
+                                Text("Date: \(formatDate(report.date))")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Text("Duration: \(Int(report.firstHalfDuration + report.secondHalfDuration)) mins")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
                             }
-                            Text("Date: \(formatDate(report.date))")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Text("Duration: \(Int(report.firstHalfDuration + report.secondHalfDuration)) mins")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                            .padding(.vertical, 4)
                         }
-                        .padding(.vertical, 4)
                     }
                 }
+                .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always))
             }
             .navigationTitle("Match History")
             .toolbar {
@@ -74,3 +133,4 @@ struct MatchHistoryView: View {
 #Preview {
     MatchHistoryView(connectivityManager: iPhoneConnectivityManager.shared)
 }
+
