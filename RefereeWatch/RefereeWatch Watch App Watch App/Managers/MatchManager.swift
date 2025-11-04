@@ -5,30 +5,37 @@
 //  Created by Xingnan Zhu on 22/10/25.
 //
 
+
 import Foundation
 import Combine
 import WatchKit
 
+/// 👇 MatchManager
+/// 手表端比赛管理类：
+/// - 控制计时、比分、事件
+/// - 生成 MatchReport
+/// - 比赛结束后自动通过 WatchConnectivity 发送到 iPhone
+
 class MatchManager: ObservableObject {
-    // Teams
+    // MARK: - Teams
     @Published var homeTeamName = "HOME"
     @Published var awayTeamName = "AWAY"
 
-    // Scores and state
+    // MARK: - Scores and state
     @Published var homeScore = 0
     @Published var awayScore = 0
     @Published var isRunning = false
     @Published var elapsedTime: TimeInterval = 0
     @Published var events: [MatchEvent] = []
     
-    // Selection & sheets
+    // MARK: - Selection & sheets
     @Published var selectedTeam: String? = nil
     @Published var selectedPlayerNumber: Int? = nil
     @Published var isGoalSheetPresented = false
     @Published var isCardSheetPresented = false
     @Published var isSubstitutionSheetPresented = false
 
-    // Match control
+    // MARK: - Match control
     @Published var currentHalf: Int = 1       // 1 = first half, 2 = second half
     @Published var halfDuration: TimeInterval = 45 * 60
     @Published var isPaused: Bool = false
@@ -40,7 +47,7 @@ class MatchManager: ObservableObject {
         guard !isRunning else { return }
         isRunning = true
         isPaused = false
-        WKInterfaceDevice.current().play(.success) // Kick-off vibration
+        WKInterfaceDevice.current().play(.success) // 开始震动
         timer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { _ in
             self.elapsedTime += 0.01
         }
@@ -53,16 +60,24 @@ class MatchManager: ObservableObject {
         timer = nil
     }
 
+    /// ⚽ 结束半场或整场
     func endHalf() {
         pauseMatch()
-        WKInterfaceDevice.current().play(.notification) // Halftime vibration
+        WKInterfaceDevice.current().play(.notification) // 中场震动
+
         if currentHalf == 1 {
+            // 切换到下半场
             currentHalf = 2
             elapsedTime = 0
         } else {
-            // Full match finished
+            // ✅ 比赛结束
             isRunning = false
-            WKInterfaceDevice.current().play(.failure) // Full time vibration
+            WKInterfaceDevice.current().play(.failure) // 终场震动
+
+            // ⬇️ 自动生成比赛报告并同步到 iPhone
+            let report = generateMatchReport()
+            WatchConnectivityManager.shared.sendMatchReport(report)
+            print("📤 Match report automatically sent to iPhone: \(report.homeTeam) vs \(report.awayTeam)")
         }
     }
     
@@ -155,6 +170,7 @@ class MatchManager: ObservableObject {
         let firstHalfTime = currentHalf == 1 ? elapsedTime : halfDuration
         let secondHalfTime = currentHalf == 2 ? elapsedTime : 0
         return MatchReport(
+            id: UUID(),
             date: Date(),
             homeTeam: homeTeamName,
             awayTeam: awayTeamName,
@@ -166,4 +182,3 @@ class MatchManager: ObservableObject {
         )
     }
 }
-

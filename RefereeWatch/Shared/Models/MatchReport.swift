@@ -11,6 +11,7 @@
 import Foundation
 
 struct MatchReport: Codable {
+    var id: UUID = UUID()   // 唯一标识每场比赛
     var date: Date
     var homeTeam: String
     var awayTeam: String

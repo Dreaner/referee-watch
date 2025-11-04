@@ -5,98 +5,140 @@
 //  Created by Xingnan Zhu on 28/10/25.
 //
 
-/*
-| 功能                        | 说明                        |
-| ------------------------- | ------------------------- |
-| **自动激活 WCSession**        | iPhone 打开 App 时即准备接收      |
-| **接收手表发来的 `MatchReport`** | 自动解码为 Swift 对象            |
-| **本地存储 JSON**             | 保存所有比赛记录到 Documents 目录    |
-| **可多次保存**                 | 每次接收新报告都会追加到历史数组          |
-| **自动加载历史记录**              | 启动时加载 `MatchReports.json` |
-*/
+///  本类负责 iPhone 端与 Apple Watch 的通信。
+///  功能：
+///  - 接收来自手表的比赛报告 (MatchReport)
+///  - 自动解码并保存到本地列表 (allReports)
+///  - 通过 @Published 通知 SwiftUI 界面更新
+///
+///  通信机制基于 WatchConnectivity (WCSession)
+///  支持 sendMessage 实时传输 与 transferUserInfo 离线传输。
 
 import Foundation
 import WatchConnectivity
 import Combine
+import SwiftUI
+import UserNotifications
 
-class iPhoneConnectivityManager: NSObject, WCSessionDelegate, ObservableObject {
+final class iPhoneConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
     static let shared = iPhoneConnectivityManager()
-    
-    @Published var lastReceivedReport: MatchReport? = nil
+
     @Published var allReports: [MatchReport] = []
-    
+    private var session: WCSession?
+
     private override init() {
         super.init()
         activateSession()
-        loadSavedReports()
+        loadReports()
+        requestNotificationPermission()
     }
-    
-    private var session: WCSession? {
-        WCSession.isSupported() ? WCSession.default : nil
-    }
-    
-    // MARK: - 激活 Session
+
+    // MARK: - Activate WCSession
     private func activateSession() {
-        guard let session = session else { return }
-        session.delegate = self
-        session.activate()
-        print("✅ iPhoneConnectivityManager activated.")
+        if WCSession.isSupported() {
+            session = WCSession.default
+            session?.delegate = self
+            session?.activate()
+            print("✅ iPhone WCSession activated and ready.")
+        } else {
+            print("⚠️ WCSession not supported on this device.")
+        }
     }
-    
-    // MARK: - 接收来自手表的比赛报告
-    func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
-        if let data = message["matchReport"] as? Data {
-            do {
-                let report = try JSONDecoder().decode(MatchReport.self, from: data)
-                DispatchQueue.main.async {
-                    self.lastReceivedReport = report
-                    self.allReports.append(report)
-                    self.saveReports()
-                    print("✅ Received match report from Watch at \(report.date)")
-                }
-            } catch {
-                print("❌ Failed to decode match report: \(error)")
+
+    // MARK: - Request Notification Permission
+    private func requestNotificationPermission() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
+            if granted {
+                print("🔔 Notification permission granted.")
+            } else {
+                print("⚠️ Notification permission denied.")
             }
         }
     }
-    
-    // MARK: - 保存与加载报告
-    private func reportsFileURL() -> URL {
-        let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        return documents.appendingPathComponent("MatchReports.json")
+
+    // MARK: - WCSessionDelegate
+    func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
+        if let data = message["matchReport"] as? Data {
+            handleIncomingReportData(data)
+        }
     }
-    
+
+    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String : Any]) {
+        if let data = userInfo["matchReport"] as? Data {
+            handleIncomingReportData(data)
+        }
+    }
+
+    func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String : Any]) {
+        if let data = applicationContext["matchReport"] as? Data {
+            handleIncomingReportData(data)
+        }
+    }
+
+    func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+        if let error = error {
+            print("❌ WCSession activation failed: \(error)")
+        } else {
+            print("✅ WCSession activated: \(activationState.rawValue)")
+        }
+    }
+
+    func sessionDidBecomeInactive(_ session: WCSession) {}
+    func sessionDidDeactivate(_ session: WCSession) { session.activate() }
+    func sessionReachabilityDidChange(_ session: WCSession) {}
+
+    // MARK: - Handle Incoming Match Report
+    private func handleIncomingReportData(_ data: Data) {
+        do {
+            let report = try JSONDecoder().decode(MatchReport.self, from: data)
+            DispatchQueue.main.async {
+                if !self.isReportAlreadySaved(report) {
+                    self.allReports.append(report)
+                    self.saveReports()
+                    self.showSyncNotification(for: report)
+                    print("✅ Received match from Watch: \(report.homeTeam) vs \(report.awayTeam)")
+                } else {
+                    print("ℹ️ Duplicate match ignored: \(report.id)")
+                }
+            }
+        } catch {
+            print("❌ Failed to decode match report: \(error)")
+        }
+    }
+
+    private func isReportAlreadySaved(_ report: MatchReport) -> Bool {
+        return allReports.contains { $0.id == report.id }
+    }
+
+    // MARK: - Persistence
     func saveReports() {
         do {
             let data = try JSONEncoder().encode(allReports)
-            try data.write(to: reportsFileURL())
-            print("💾 Saved \(allReports.count) reports locally.")
+            UserDefaults.standard.set(data, forKey: "savedReports")
+            print("💾 Reports saved (\(allReports.count) total)")
         } catch {
             print("❌ Failed to save reports: \(error)")
         }
     }
-    
-    private func loadSavedReports() {
-        let url = reportsFileURL()
-        guard FileManager.default.fileExists(atPath: url.path) else { return }
+
+    private func loadReports() {
+        guard let data = UserDefaults.standard.data(forKey: "savedReports") else { return }
         do {
-            let data = try Data(contentsOf: url)
             allReports = try JSONDecoder().decode([MatchReport].self, from: data)
-            print("📂 Loaded \(allReports.count) saved reports.")
+            print("📂 Loaded \(allReports.count) reports from storage")
         } catch {
-            print("❌ Failed to load saved reports: \(error)")
+            print("❌ Failed to load reports: \(error)")
         }
     }
-    
-    // MARK: - WCSessionDelegate requirements
-    func sessionDidBecomeInactive(_ session: WCSession) {}
-    func sessionDidDeactivate(_ session: WCSession) { session.activate() }
-    func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
-        if let error = error {
-            print("❌ iPhone WCSession activation failed: \(error)")
-        } else {
-            print("✅ iPhone WCSession activated with state: \(activationState.rawValue)")
-        }
+
+    // MARK: - Notification
+    private func showSyncNotification(for report: MatchReport) {
+        let content = UNMutableNotificationContent()
+        content.title = "📥 New Match Synced"
+        content.body = "\(report.homeTeam) vs \(report.awayTeam) (\(report.homeScore)-\(report.awayScore))"
+        content.sound = .default
+
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+        UNUserNotificationCenter.current().add(request)
     }
 }
-

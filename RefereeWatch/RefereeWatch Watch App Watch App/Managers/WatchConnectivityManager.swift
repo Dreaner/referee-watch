@@ -5,69 +5,93 @@
 //  Created by Xingnan Zhu on 25/10/25.
 //
 
-// Watch ↔ iPhone 传输
+///  本类负责 Apple Watch 与 iPhone 的数据通信。
+///  功能：
+///  - 发送比赛报告 (MatchReport) 到 iPhone
+///  - 自动检测 iPhone 是否在线 (isReachable)。
+///  - 优先使用 sendMessage 实时发送
+///  - 若 iPhone 不可达，则使用 transferUserInfo 离线传输
 
+
+import Foundation
 import WatchConnectivity
-import SwiftUI
 import Combine
 
-class WatchConnectivityManager: NSObject, WCSessionDelegate, ObservableObject {
+
+final class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
     static let shared = WatchConnectivityManager()
     
-    // Optional: 发布上次发送的报告，可供界面刷新
-    @Published var lastSentReport: MatchReport? = nil
+    @Published var isReachable: Bool = false
+    private var session: WCSession?
     
-    private override init() {}
-    
-    private var session: WCSession? {
-        WCSession.isSupported() ? WCSession.default : nil
+    override init() {
+        super.init()
+        activateSession()
     }
     
-    // MARK: - 激活 Session
-    func activate() {
-        guard let session = session else { return }
-        session.delegate = self
-        session.activate()
-    }
-    
-    // MARK: - 发送完整 MatchReport
-    func sendWatchReport(_ report: MatchReport) {
-        guard let session = session, session.isReachable else {
-            print("❌ iPhone not reachable")
+    // MARK: - Activate WCSession
+    private func activateSession() {
+        guard WCSession.isSupported() else {
+            print("⚠️ WCSession not supported on this device.")
             return
         }
+        session = WCSession.default
+        session?.delegate = self
+        session?.activate()
+        print("✅ WatchConnectivity session activated.")
+    }
+    
+    // MARK: - Send Match Report
+    func sendMatchReport(_ report: MatchReport) {
+        guard let session = session else { return }
         
         do {
             let data = try JSONEncoder().encode(report)
             let message: [String: Any] = ["matchReport": data]
             
-            session.sendMessage(message, replyHandler: { _ in
-                print("✅ Match report sent successfully")
-            }, errorHandler: { error in
-                print("❌ Failed to send match report: \(error)")
-            })
+            if session.isReachable {
+                // ✅ 实时传输
+                session.sendMessage(message, replyHandler: { reply in
+                    print("✅ Match report sent successfully, reply: \(reply)")
+                }, errorHandler: { error in
+                    print("⚠️ sendMessage failed (\(error.localizedDescription)), fallback to transferUserInfo.")
+                    self.transferReportBackup(report)
+                })
+            } else {
+                // 📦 离线队列传输
+                transferReportBackup(report)
+            }
             
-            // 更新发布属性
-            lastSentReport = report
         } catch {
-            print("❌ Encoding error: \(error)")
+            print("❌ Encoding match report failed: \(error)")
+        }
+    }
+    
+    // MARK: - Reliable Background Transfer
+    private func transferReportBackup(_ report: MatchReport) {
+        do {
+            let info = try JSONEncoder().encode(report)
+            session?.transferUserInfo(["matchReport": info])
+            print("📤 transferUserInfo queued for delivery when connected.")
+        } catch {
+            print("❌ transferUserInfo encoding failed: \(error)")
         }
     }
     
     // MARK: - WCSessionDelegate
-    func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
-        if let error = error {
-            print("❌ WCSession activation failed: \(error)")
-        } else {
-            print("✅ WCSession activated with state: \(activationState.rawValue)")
+    func sessionReachabilityDidChange(_ session: WCSession) {
+        DispatchQueue.main.async {
+            self.isReachable = session.isReachable
+            print("🔄 iPhone Reachability changed: \(self.isReachable)")
         }
     }
     
-    func sessionReachabilityDidChange(_ session: WCSession) {
-        print("📡 Reachability changed: \(session.isReachable)")
+    func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+        if let error = error {
+            print("❌ WCSession activation failed: \(error.localizedDescription)")
+        } else {
+            print("✅ WCSession activated with state: \(activationState.rawValue)")
+            self.isReachable = session.isReachable
+        }
     }
-    
-    // Optional: 其他 delegate 方法可根据需要实现
 }
-
-

@@ -7,9 +7,11 @@
 
 
 import SwiftUI
+import WatchKit
 
 struct EventLogView: View {
     @ObservedObject var matchManager: MatchManager
+    @State private var showSyncSuccess = false // ✅ 新增：控制提示动画显示
     
     var body: some View {
         ScrollView {
@@ -35,13 +37,14 @@ struct EventLogView: View {
                         Divider()
                     }
                 }
-                // Export Button
+
+                // MARK: - Export Button
                 Button(action: {
                     exportToiPhone()
                 }) {
                     HStack {
                         Spacer()
-                        Text("Export to iPhone")
+                        Label("Export to iPhone", systemImage: "arrow.up.iphone")
                             .font(.footnote)
                             .fontWeight(.semibold)
                         Spacer()
@@ -51,6 +54,27 @@ struct EventLogView: View {
                 .padding(.top, 8)
             }
             .padding()
+            // ✅ 同步成功提示动画
+            .overlay(
+                Group {
+                    if showSyncSuccess {
+                        VStack {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 36))
+                                .foregroundColor(.green)
+                                .transition(.scale)
+                            Text("Synced to iPhone")
+                                .font(.footnote)
+                                .foregroundColor(.green)
+                        }
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(10)
+                        .shadow(radius: 4)
+                    }
+                }
+            )
+            .animation(.easeInOut(duration: 0.3), value: showSyncSuccess)
         }
     }
     
@@ -75,14 +99,23 @@ struct EventLogView: View {
     // MARK: - Export Function
     private func exportToiPhone() {
         let report = matchManager.generateMatchReport()
-        WatchConnectivityManager.shared.sendWatchReport(report)
-        // Optional feedback
-        WKInterfaceDevice.current().play(.click)
+        WatchConnectivityManager.shared.sendMatchReport(report)
+        
+        // ✅ 震动 + 显示成功提示
+        WKInterfaceDevice.current().play(.success)
+        withAnimation {
+            showSyncSuccess = true
+        }
+        
+        // 2 秒后自动隐藏提示
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            withAnimation {
+                showSyncSuccess = false
+            }
+        }
     }
 }
-
 
 #Preview {
     EventLogView(matchManager: MatchManager())
 }
-
