@@ -5,7 +5,7 @@
 //  Created by Xingnan Zhu on 29/10/25.
 //
 
-// 在手机app里添加事件，一般用于场上场下遗漏的情况，手动更正。
+/// 在手机app里添加事件，一般用于场上场下遗漏的情况，手动更正。
 
 
 import SwiftUI
