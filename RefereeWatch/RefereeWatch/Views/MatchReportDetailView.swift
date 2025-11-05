@@ -5,7 +5,6 @@
 //  Created by Xingnan Zhu on 28/10/25.
 //
 
-
 import SwiftUI
 
 struct MatchReportDetailView: View {
@@ -15,6 +14,8 @@ struct MatchReportDetailView: View {
     @State private var isEditing = false
     @State private var editedReport: MatchReport
     @State private var showingAddEvent = false
+    @State private var showingShareSheet = false
+    @State private var generatedPDF: URL?
 
     init(connectivityManager: iPhoneConnectivityManager, report: MatchReport) {
         self.connectivityManager = connectivityManager
@@ -62,7 +63,9 @@ struct MatchReportDetailView: View {
 
             Section(header: Text("Events")) {
                 if editedReport.events.isEmpty {
-                    Text("No events recorded.").foregroundColor(.gray).font(.footnote)
+                    Text("No events recorded.")
+                        .foregroundColor(.gray)
+                        .font(.footnote)
                 } else {
                     ForEach(Array(editedReport.events.enumerated()), id: \.offset) { index, event in
                         HStack {
@@ -86,6 +89,18 @@ struct MatchReportDetailView: View {
                     }
                 }
             }
+
+            // ✅ PDF Export Section
+            Section {
+                Button {
+                    exportPDF()
+                } label: {
+                    HStack {
+                        Image(systemName: "doc.richtext")
+                        Text("Export PDF Report")
+                    }
+                }
+            }
         }
         .navigationTitle("Match Detail")
         .toolbar {
@@ -101,8 +116,21 @@ struct MatchReportDetailView: View {
         .sheet(isPresented: $showingAddEvent) {
             AddMatchEventView(report: $editedReport)
         }
+        .sheet(isPresented: $showingShareSheet) {
+            if let generatedPDF {
+                ActivityView(activityItems: [generatedPDF])
+            }
+        }
     }
 
+    // MARK: - PDF Export
+    private func exportPDF() {
+        let url = PDFReportGenerator.shared.generatePDF(for: report)
+        generatedPDF = url
+        showingShareSheet = true
+    }
+
+    // MARK: - Helper Methods
     private func formatDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
@@ -110,11 +138,22 @@ struct MatchReportDetailView: View {
     }
 
     private func saveChanges() {
-        if let index = connectivityManager.allReports.firstIndex(where: { $0.date == report.date && $0.homeTeam == report.homeTeam && $0.awayTeam == report.awayTeam }) {
+        if let index = connectivityManager.allReports.firstIndex(where: {
+            $0.id == report.id
+        }) {
             connectivityManager.allReports[index] = editedReport
             connectivityManager.saveReports()
         }
     }
+}
+
+// MARK: - ActivityView (Share Sheet)
+struct ActivityView: UIViewControllerRepresentable {
+    var activityItems: [Any]
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+    func updateUIViewController(_ vc: UIActivityViewController, context: Context) {}
 }
 
 // MARK: - Preview
@@ -133,5 +172,4 @@ struct MatchReportDetailView: View {
         )
     )
 }
-
 
