@@ -31,7 +31,8 @@ final class PDFReportGenerator {
     private let headerFont = UIFont.boldSystemFont(ofSize: 14)
     private let bodyFont = UIFont.systemFont(ofSize: 10)
     private let cellPadding: CGFloat = 5
-    // ✅ 样式改进：使用深灰色细线
+    
+    // 样式改进：使用深灰色细线
     private let lineColor = UIColor.darkGray
     private let lightGrayColor = UIColor(white: 0.95, alpha: 1.0)
     private let sectionBackgroundColor = UIColor(white: 0.9, alpha: 1.0)
@@ -332,40 +333,64 @@ final class PDFReportGenerator {
     }
     
     private func drawOfficialsSection() {
-        let sectionHeight: CGFloat = 80
+        let sectionHeight: CGFloat = 120 // 增大区块高度以容纳两行签名
         if cursorY + sectionHeight > pageRect.height - margin {
             UIGraphicsBeginPDFPage()
             cursorY = margin
         }
-        
+            
         let subTitleFont = UIFont.boldSystemFont(ofSize: 10)
-        let lineY = cursorY + 25
-        
+            
         ("MATCH OFFICIALS" as NSString).draw(at: CGPoint(x: margin, y: cursorY), withAttributes: [.font: headerFont])
         cursorY += 35
+            
+        // --- 签名区块 第一行 (主裁 & 第四官员) ---
+        let lineY1 = cursorY
         
-        // 裁判签名占位
-        ("Referee Signature:" as NSString).draw(at: CGPoint(x: margin, y: lineY), withAttributes: [.font: subTitleFont])
-        ("1st Assistant Referee:" as NSString).draw(at: CGPoint(x: margin + 150, y: lineY), withAttributes: [.font: subTitleFont])
-        ("2nd Assistant Referee:" as NSString).draw(at: CGPoint(x: margin + 300, y: lineY), withAttributes: [.font: subTitleFont])
-        
-        // 绘制签名线
+        // 裁判签名
+        ("Referee Signature:" as NSString).draw(at: CGPoint(x: margin, y: lineY1), withAttributes: [.font: subTitleFont])
+        // ✅ 第四官员签名
+        ("Fourth Official Signature:" as NSString).draw(at: CGPoint(x: margin + 300, y: lineY1), withAttributes: [.font: subTitleFont])
+
+        // 绘制签名线 (第一行)
         lineColor.setStroke()
-        let path = UIBezierPath()
-        path.lineWidth = 0.5
-        
-        path.move(to: CGPoint(x: margin, y: lineY + 15))
-        path.addLine(to: CGPoint(x: margin + 140, y: lineY + 15))
-        
-        path.move(to: CGPoint(x: margin + 150, y: lineY + 15))
-        path.addLine(to: CGPoint(x: margin + 290, y: lineY + 15))
-        
-        path.move(to: CGPoint(x: margin + 300, y: lineY + 15))
-        path.addLine(to: CGPoint(x: margin + 440, y: lineY + 15))
-        
-        path.stroke()
-        
-        cursorY += sectionHeight
+        let path1 = UIBezierPath()
+        path1.lineWidth = 0.5
+            
+        // 裁判签名线
+        path1.move(to: CGPoint(x: margin, y: lineY1 + 15))
+        path1.addLine(to: CGPoint(x: margin + 200, y: lineY1 + 15)) // 稍微加长签名线
+            
+        // 第四官员签名线
+        path1.move(to: CGPoint(x: margin + 300, y: lineY1 + 15))
+        path1.addLine(to: CGPoint(x: margin + 500, y: lineY1 + 15))
+            
+        path1.stroke()
+        cursorY += 40
+            
+        // --- 签名区块 第二行 (两个助理裁判) ---
+        let lineY2 = cursorY
+
+        // 1st 助理裁判签名
+        ("1st Assistant Referee:" as NSString).draw(at: CGPoint(x: margin, y: lineY2), withAttributes: [.font: subTitleFont])
+        // 2nd 助理裁判签名
+        ("2nd Assistant Referee:" as NSString).draw(at: CGPoint(x: margin + 300, y: lineY2), withAttributes: [.font: subTitleFont])
+            
+        // 绘制签名线 (第二行)
+        let path2 = UIBezierPath()
+        path2.lineWidth = 0.5
+            
+        // 1st 助理裁判签名线
+        path2.move(to: CGPoint(x: margin, y: lineY2 + 15))
+        path2.addLine(to: CGPoint(x: margin + 200, y: lineY2 + 15))
+            
+        // 2nd 助理裁判签名线
+        path2.move(to: CGPoint(x: margin + 300, y: lineY2 + 15))
+        path2.addLine(to: CGPoint(x: margin + 500, y: lineY2 + 15))
+            
+        path2.stroke()
+            
+        cursorY += sectionHeight // 更新 Y 轴游标
     }
 
     // MARK: - 辅助格式化方法

@@ -28,6 +28,11 @@ final class iPhoneConnectivityManager: NSObject, ObservableObject, WCSessionDele
 
     private override init() {
         super.init()
+        /*
+        // 🚨 【临时代码 1/2】: 强制清除 UserDefaults 中的旧报告，只执行一次即可
+        UserDefaults.standard.removeObject(forKey: "savedReports")
+        print("🗑️ Force clearing old reports.")
+        */
         activateSession()
         loadReports()
         requestNotificationPermission()
