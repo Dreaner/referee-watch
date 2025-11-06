@@ -158,18 +158,99 @@ struct ActivityView: UIViewControllerRepresentable {
 
 // MARK: - Preview
 #Preview {
-    MatchReportDetailView(
-        connectivityManager: iPhoneConnectivityManager.shared,
-        report: MatchReport(
-            date: Date(),
-            homeTeam: "Team A",
-            awayTeam: "Team B",
-            homeScore: 2,
-            awayScore: 1,
-            firstHalfDuration: 45,
-            secondHalfDuration: 45,
-            events: []
+    // 创建包含 3 个 Home Goal 和 1 个 Away Goal 的丰富事件列表
+    let sampleEvents = [
+        // --- HOME GOALS (3 total: 9号进2个, 7号进1个) ---
+        MatchEvent(
+            type: .goal,
+            team: "home",
+            playerNumber: 9,
+            goalType: .normal,
+            cardType: nil,
+            playerOut: nil,
+            playerIn: nil,
+            timestamp: 15 * 60 // 15:00
+        ),
+        MatchEvent(
+            type: .goal,
+            team: "home",
+            playerNumber: 7,
+            goalType: .normal,
+            cardType: nil,
+            playerOut: nil,
+            playerIn: nil,
+            timestamp: 48 * 60 // 48:00
+        ),
+        MatchEvent(
+            type: .goal,
+            team: "home",
+            playerNumber: 9,
+            goalType: .normal,
+            cardType: nil,
+            playerOut: nil,
+            playerIn: nil,
+            timestamp: 75 * 60 // 75:00
+        ),
+        
+        // --- AWAY GOALS (1 total: 11号进1个) ---
+        MatchEvent(
+            type: .goal,
+            team: "away",
+            playerNumber: 11,
+            goalType: .penalty, // 点球
+            cardType: nil,
+            playerOut: nil,
+            playerIn: nil,
+            timestamp: 90 * 60 + 20 // 90:20
+        ),
+
+        // --- 其他事件（保留原有测试数据） ---
+        MatchEvent(
+            type: .card,
+            team: "away",
+            playerNumber: 4,
+            goalType: nil,
+            cardType: .yellow,
+            playerOut: nil,
+            playerIn: nil,
+            timestamp: 32 * 60
+        ),
+        MatchEvent(
+            type: .substitution,
+            team: "home",
+            playerNumber: nil,
+            goalType: nil,
+            cardType: nil,
+            playerOut: 10,
+            playerIn: 18,
+            timestamp: 60 * 60
+        ),
+        MatchEvent(
+            type: .card,
+            team: "away",
+            playerNumber: 4,
+            goalType: nil,
+            cardType: .red,
+            playerOut: nil,
+            playerIn: nil,
+            timestamp: 65 * 60
         )
+    ]
+
+    // 确保 MatchReport 的比分与事件数量一致
+    let testReport = MatchReport(
+        date: Date().addingTimeInterval(-86400 * 3),
+        homeTeam: "Dragons FC",
+        awayTeam: "Eagles Utd",
+        homeScore: 3, // 匹配 3 个 Home Goal 事件
+        awayScore: 1, // 匹配 1 个 Away Goal 事件
+        firstHalfDuration: 45 * 60,
+        secondHalfDuration: 45 * 60,
+        events: sampleEvents
+    )
+
+    return MatchReportDetailView(
+        connectivityManager: iPhoneConnectivityManager.shared,
+        report: testReport
     )
 }
-

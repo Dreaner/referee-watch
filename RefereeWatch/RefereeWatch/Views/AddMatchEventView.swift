@@ -98,7 +98,7 @@ struct AddMatchEventView: View {
     }
 
     private func addEvent() {
-        var newEvent = MatchEvent(
+        let newEvent = MatchEvent(
             type: selectedType,
             team: team,
             playerNumber: selectedType == .goal || selectedType == .card ? Int(playerNumber) : nil,

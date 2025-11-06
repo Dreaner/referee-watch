@@ -5,10 +5,10 @@
 //  Created by Xingnan Zhu on 22/10/25.
 //
 
-
 import Foundation
 import Combine
 import WatchKit
+import HealthKit
 
 /// 👇 MatchManager
 /// 手表端比赛管理类：
@@ -17,6 +17,15 @@ import WatchKit
 /// - 比赛结束后自动通过 WatchConnectivity 发送到 iPhone
 
 class MatchManager: ObservableObject {
+    
+    // MARK: - HealthKit 依赖
+    // ✅ 修正：ObservableObject 内部不能使用 @ObservedObject，直接使用 var 引用单例。
+    var workoutManager = WorkoutManager.shared
+    
+    // MARK: - 计时状态
+    // ✅ 记录第一半结束时的 HealthKit 精确时间
+    @Published private(set) var timeAtEndOfFirstHalf: TimeInterval = 0
+
     // MARK: - Teams
     @Published var homeTeamName = "HOME"
     @Published var awayTeamName = "AWAY"
@@ -25,7 +34,6 @@ class MatchManager: ObservableObject {
     @Published var homeScore = 0
     @Published var awayScore = 0
     @Published var isRunning = false
-    @Published var elapsedTime: TimeInterval = 0
     @Published var events: [MatchEvent] = []
     
     // MARK: - Selection & sheets
@@ -40,24 +48,29 @@ class MatchManager: ObservableObject {
     @Published var halfDuration: TimeInterval = 45 * 60
     @Published var isPaused: Bool = false
     
-    private var timer: Timer?
-
     // MARK: - Match control
     func startMatch() {
         guard !isRunning else { return }
+        
+        if currentHalf == 1 {
+            // 第一半：启动 HealthKit 会话
+            workoutManager.startWorkout()
+        } else {
+            // 第二半：恢复 HealthKit 会话
+            workoutManager.resumeWorkout()
+        }
+        
         isRunning = true
         isPaused = false
-        WKInterfaceDevice.current().play(.success) // 开始震动
-        timer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { _ in
-            self.elapsedTime += 0.01
-        }
+        WKInterfaceDevice.current().play(.success)
     }
     
     func pauseMatch() {
+        // ✅ 暂停 HealthKit 会话
+        workoutManager.pauseWorkout()
+        
         isRunning = false
         isPaused = true
-        timer?.invalidate()
-        timer = nil
     }
 
     /// ⚽ 结束半场或整场
@@ -66,13 +79,18 @@ class MatchManager: ObservableObject {
         WKInterfaceDevice.current().play(.notification) // 中场震动
 
         if currentHalf == 1 {
+            // ✅ 记录第一半的精确结束时间
+            timeAtEndOfFirstHalf = workoutManager.elapsedTime
+            
             // 切换到下半场
             currentHalf = 2
-            elapsedTime = 0
         } else {
             // ✅ 比赛结束
             isRunning = false
             WKInterfaceDevice.current().play(.failure) // 终场震动
+            
+            // 结束 HealthKit 会话
+            workoutManager.endWorkout()
 
             // ⬇️ 自动生成比赛报告并同步到 iPhone
             let report = generateMatchReport()
@@ -82,12 +100,17 @@ class MatchManager: ObservableObject {
     }
     
     func resetMatch() {
-        pauseMatch()
+        // 结束 HealthKit 会话并清理状态
+        workoutManager.endWorkout()
+        
+        // 重置 MatchManager 内部状态
         homeScore = 0
         awayScore = 0
-        elapsedTime = 0
+        timeAtEndOfFirstHalf = 0
         events.removeAll()
         currentHalf = 1
+        isRunning = false
+        isPaused = false
     }
 
     // MARK: - Events
@@ -110,7 +133,8 @@ class MatchManager: ObservableObject {
             cardType: nil,
             playerOut: nil,
             playerIn: nil,
-            timestamp: elapsedTime
+            // ✅ 使用 HealthKit 的当前总时间
+            timestamp: workoutManager.elapsedTime
         )
         addEvent(event)
     }
@@ -124,7 +148,8 @@ class MatchManager: ObservableObject {
             cardType: cardType,
             playerOut: nil,
             playerIn: nil,
-            timestamp: elapsedTime
+            // ✅ 使用 HealthKit 的当前总时间
+            timestamp: workoutManager.elapsedTime
         )
         addEvent(event)
         
@@ -143,7 +168,8 @@ class MatchManager: ObservableObject {
                     cardType: .red,
                     playerOut: nil,
                     playerIn: nil,
-                    timestamp: elapsedTime
+                    // ✅ 使用 HealthKit 的当前总时间
+                    timestamp: workoutManager.elapsedTime
                 )
                 addEvent(redEvent)
                 WKInterfaceDevice.current().play(.failure)
@@ -160,15 +186,19 @@ class MatchManager: ObservableObject {
             cardType: nil,
             playerOut: playerOut,
             playerIn: playerIn,
-            timestamp: elapsedTime
+            // ✅ 使用 HealthKit 的当前总时间
+            timestamp: workoutManager.elapsedTime
         )
         addEvent(event)
     }
     
     // MARK: - MatchReport
     func generateMatchReport() -> MatchReport {
-        let firstHalfTime = currentHalf == 1 ? elapsedTime : halfDuration
-        let secondHalfTime = currentHalf == 2 ? elapsedTime : 0
+        // 计算第一半和第二半的精确时长
+        let finalFirstHalfTime = timeAtEndOfFirstHalf
+        // 如果比赛结束，计算第二半的时长；如果还在第一半（调用 endHalf 时），则第二半时长为 0
+        let finalSecondHalfTime = workoutManager.elapsedTime - finalFirstHalfTime
+        
         return MatchReport(
             id: UUID(),
             date: Date(),
@@ -176,8 +206,9 @@ class MatchManager: ObservableObject {
             awayTeam: awayTeamName,
             homeScore: homeScore,
             awayScore: awayScore,
-            firstHalfDuration: firstHalfTime,
-            secondHalfDuration: secondHalfTime,
+            // ✅ 记录 HealthKit 测量的精确时长
+            firstHalfDuration: finalFirstHalfTime,
+            secondHalfDuration: finalSecondHalfTime,
             events: events
         )
     }

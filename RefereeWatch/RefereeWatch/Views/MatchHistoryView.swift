@@ -84,23 +84,27 @@ struct MatchHistoryView: View {
                             .padding()
                     } else {
                         ForEach(filteredReports, id: \.date) { report in
-                            VStack(alignment: .leading, spacing: 4) {
-                                HStack {
-                                    Text("\(report.homeTeam) vs \(report.awayTeam)")
-                                        .font(.headline)
-                                    Spacer()
-                                    Text("\(report.homeScore) - \(report.awayScore)")
-                                        .font(.subheadline)
-                                        .bold()
+                            // ✅ 修复点：使用 NavigationLink 包装 VStack
+                            NavigationLink(destination: MatchReportDetailView(connectivityManager: connectivityManager, report: report)) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack {
+                                        Text("\(report.homeTeam) vs \(report.awayTeam)")
+                                            .font(.headline)
+                                        Spacer()
+                                        Text("\(report.homeScore) - \(report.awayScore)")
+                                            .font(.subheadline)
+                                            .bold()
+                                    }
+                                    Text("Date: \(formatDate(report.date))")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    // 注意：这里将时长改为分钟，符合您的计算逻辑
+                                    Text("Duration: \(Int((report.firstHalfDuration + report.secondHalfDuration) / 60)) mins")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
                                 }
-                                Text("Date: \(formatDate(report.date))")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                Text("Duration: \(Int(report.firstHalfDuration + report.secondHalfDuration)) mins")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            .padding(.vertical, 4)
+                                .padding(.vertical, 4)
+                            } // 结束 NavigationLink
                         }
                     }
                 }

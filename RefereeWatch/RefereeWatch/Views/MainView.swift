@@ -5,7 +5,7 @@
 //  Created by Xingnan Zhu on 28/10/25.
 //
 
-// 应用程序入口
+/// 应用程序入口
 
 
 import SwiftUI
