@@ -5,8 +5,6 @@
 //  Created by Xingnan Zhu on 22/10/25.
 //
 
-// 文件: RefereeWatch/RefereeWatch Watch App Watch App/Managers/MatchManager.swift (简洁版)
-
 import Foundation
 import Combine
 import WatchKit
@@ -14,7 +12,6 @@ import HealthKit
 
 class MatchManager: ObservableObject {
     
-    // 假设 WorkoutManager.swift 文件已存在并包含 HealthKit 逻辑
     var workoutManager = WorkoutManager.shared
     
     @Published private(set) var timeAtEndOfFirstHalf: TimeInterval = 0
@@ -26,7 +23,6 @@ class MatchManager: ObservableObject {
     // MARK: - Scores and state
     @Published var homeScore = 0
     @Published var awayScore = 0
-    // isRunning: 指示比赛是否在 "活动" 状态 (未记录中断)
     @Published var isRunning = false
     @Published var events: [MatchEvent] = []
     
@@ -35,58 +31,57 @@ class MatchManager: ObservableObject {
     @Published var halfDuration: TimeInterval = 45 * 60 // 45 minutes
     
     // MARK: - Stoppage Time
-    @Published private(set) var totalStoppageTime: TimeInterval = 0 // 当前半场累计中断时长
-    private var stoppageTimeStart: Date? // 中断开始的绝对时间戳
-    @Published private(set) var recommendedStoppageTime: TimeInterval = 0 // 推荐补时值 (显示用)
-    private var recommendationTimer: AnyCancellable? // 用于实时检查推荐补时的计时器
+    @Published private(set) var totalStoppageTime: TimeInterval = 0
+    private var stoppageTimeStart: Date?
+    @Published private(set) var recommendedStoppageTime: TimeInterval = 0
+    private var recommendationTimer: AnyCancellable?
     
-    // MARK: - Sheet Presentation (使用标准 Bool 类型)
+    // MARK: - Sheet Presentation
     @Published var isGoalSheetPresented = false
     @Published var isCardSheetPresented = false
     @Published var isSubstitutionSheetPresented = false
+
+    // ✅ 修复 2: 新增 Critical Feedback Message
+    @Published var criticalFeedbackMessage: String? = nil
     
     // MARK: - Match control
     func startMatch() {
         guard !isRunning else { return }
         
         if currentHalf == 1 {
-            // 第一半：启动 HealthKit Session
             workoutManager.startWorkout()
         } else {
-            // 第二半：恢复 HealthKit Session
             workoutManager.resumeWorkout()
         }
 
-        // 累计中断时间（如果裁判是从中断状态恢复）
         if let start = stoppageTimeStart {
             let interruptionDuration = Date().timeIntervalSince(start)
             totalStoppageTime += interruptionDuration
-            stoppageTimeStart = nil // 清除中断开始标记
+            stoppageTimeStart = nil
         }
         
         isRunning = true
         WKInterfaceDevice.current().play(.success)
-        startRecommendationTimer() // 启动补时推荐计算
+        startRecommendationTimer()
+        criticalFeedbackMessage = nil // 清除旧的严重警告
     }
     
-    // 记录中断时间（Stop Time）
     func stopTime() {
         guard isRunning else { return }
         
-        isRunning = false // 状态标记为中断中
+        isRunning = false
         
-        // 开始追踪中断时间
         if stoppageTimeStart == nil {
             stoppageTimeStart = Date()
         }
         WKInterfaceDevice.current().play(.click)
+        criticalFeedbackMessage = nil // 清除旧的严重警告
     }
 
     func endHalf() {
-        isRunning = false // 状态标记为 Halftime/Full Time
-        stopRecommendationTimer() // 停止补时推荐计算
+        isRunning = false
+        stopRecommendationTimer()
 
-        // 最终累计中断时间（如果当前处于中断状态）
         if let start = stoppageTimeStart {
             totalStoppageTime += Date().timeIntervalSince(start)
             stoppageTimeStart = nil
@@ -96,19 +91,13 @@ class MatchManager: ObservableObject {
 
         if currentHalf == 1 {
             timeAtEndOfFirstHalf = workoutManager.elapsedTime
-            
             print("First Half Stoppage Time: \(Int(totalStoppageTime/60)) minutes.")
-            
             currentHalf = 2
             totalStoppageTime = 0
             recommendedStoppageTime = 0
         } else {
-            // 比赛结束 (Full Time)
             WKInterfaceDevice.current().play(.failure)
-            
-            // 真正结束 HealthKit Session
             workoutManager.endWorkout()
-
             let report = generateMatchReport()
             WatchConnectivityManager.shared.sendMatchReport(report)
             print("📤 Match report automatically sent to iPhone: \(report.homeTeam) vs \(report.awayTeam)")
@@ -117,7 +106,6 @@ class MatchManager: ObservableObject {
     
     func resetMatch() {
         workoutManager.endWorkout()
-        
         homeScore = 0
         awayScore = 0
         timeAtEndOfFirstHalf = 0
@@ -128,6 +116,7 @@ class MatchManager: ObservableObject {
         recommendedStoppageTime = 0
         stoppageTimeStart = nil
         stopRecommendationTimer()
+        criticalFeedbackMessage = nil // 清除
     }
 
     // MARK: - Events
@@ -164,6 +153,8 @@ class MatchManager: ObservableObject {
                 )
                 addEvent(redEvent)
                 WKInterfaceDevice.current().play(.failure)
+                // ✅ 修复 2: 添加提示语
+                criticalFeedbackMessage = "2 YELLOWS = EXPULSION (RED)! Player #\(playerNumber)"
             }
         }
     }
@@ -175,7 +166,7 @@ class MatchManager: ObservableObject {
         addEvent(event)
     }
 
-    // MARK: - Recommendation Logic
+    // MARK: - Recommendation Logic (保持不变)
     private func startRecommendationTimer() {
         recommendationTimer = Timer.publish(every: 1, on: .main, in: .common)
             .autoconnect()
@@ -190,7 +181,7 @@ class MatchManager: ObservableObject {
     }
     
     private func checkStoppageRecommendation() {
-        let referenceDuration: TimeInterval = halfDuration // 45 * 60
+        let referenceDuration: TimeInterval = halfDuration
         let totalElapsedTime = workoutManager.elapsedTime
         let elapsedTimeInHalf: TimeInterval
         
@@ -200,26 +191,22 @@ class MatchManager: ObservableObject {
             elapsedTimeInHalf = totalElapsedTime - timeAtEndOfFirstHalf
         }
         
-        // 1. 如果当前处于中断状态，实时计算当前的累计补时
         var currentAccumulation = totalStoppageTime
         if let start = stoppageTimeStart {
             currentAccumulation += Date().timeIntervalSince(start)
         }
         
-        // 2. 检查是否达到提醒阈值 (提前 30 秒提醒)
         let alertThreshold: TimeInterval = 30
         
         if elapsedTimeInHalf >= referenceDuration - alertThreshold {
-            // 将累计补时四舍五入到分钟，作为推荐值
             let roundedMinutes = (currentAccumulation / 60.0).rounded()
-            recommendedStoppageTime = roundedMinutes * 60 // 存储为秒，但在 UI 中显示为分钟
+            recommendedStoppageTime = roundedMinutes * 60
         } else {
-            // 在阈值之前，不显示推荐值
             recommendedStoppageTime = 0
         }
     }
 
-    // MARK: - MatchReport
+    // MARK: - MatchReport (保持不变)
     func generateMatchReport() -> MatchReport {
         let finalFirstHalfTime = timeAtEndOfFirstHalf
         let finalSecondHalfTime = workoutManager.elapsedTime - finalFirstHalfTime

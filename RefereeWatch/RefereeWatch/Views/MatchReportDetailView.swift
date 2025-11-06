@@ -45,11 +45,25 @@ struct MatchReportDetailView: View {
             }
 
             Section(header: Text("Duration")) {
+                // 确保 Stepper 和显示都以分钟为单位
                 if isEditing {
-                    Stepper("First Half: \(Int(editedReport.firstHalfDuration))", value: $editedReport.firstHalfDuration, in: 1...120)
-                    Stepper("Second Half: \(Int(editedReport.secondHalfDuration))", value: $editedReport.secondHalfDuration, in: 1...120)
+                    // Stepper value is bound to minutes (Double)
+                    Stepper("First Half: \(Int(editedReport.firstHalfDuration / 60.0)) mins",
+                            value: Binding(
+                                get: { editedReport.firstHalfDuration / 60.0 },
+                                set: { editedReport.firstHalfDuration = $0 * 60.0 }
+                            ),
+                            in: 1...120)
+                                    
+                    Stepper("Second Half: \(Int(editedReport.secondHalfDuration / 60.0)) mins",
+                            value: Binding(
+                                get: { editedReport.secondHalfDuration / 60.0 },
+                                set: { editedReport.secondHalfDuration = $0 * 60.0 }
+                            ),
+                            in: 1...120)
                 } else {
-                    Text("Total: \(Int(report.firstHalfDuration + report.secondHalfDuration)) mins")
+                    let totalMinutes = (report.firstHalfDuration + report.secondHalfDuration) / 60.0
+                    Text("Total: \(Int(totalMinutes.rounded())) mins")
                 }
             }
 

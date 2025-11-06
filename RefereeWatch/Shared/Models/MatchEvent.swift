@@ -52,7 +52,9 @@ struct MatchEvent: Identifiable, Codable {
 // MARK: - Readable description
 extension MatchEvent {
     var description: String {
-        let minute = Int(timestamp / 60)
+        // ✅ 修复 5: 使用 ceil() 确保 30s 计入第 1 分钟，并保证最小为 1
+        let minute = max(1, Int(ceil(timestamp / 60)))
+        
         switch type {
         case .goal:
             let goalDesc = goalType?.rawValue ?? "Goal"
@@ -65,7 +67,8 @@ extension MatchEvent {
         case .substitution:
             let outPlayer = playerOut != nil ? "Player \(playerOut!)" : "Unknown"
             let inPlayer = playerIn != nil ? "Player \(playerIn!)" : "Unknown"
-            return "\(minute)' \(team.capitalized) - Substitution: \(outPlayer) → \(inPlayer)"
+            // ✅ 修复 1: 移除 Substitution 后面的冒号
+            return "\(minute)' \(team.capitalized) - Substitution \(outPlayer) → \(inPlayer)"
         }
     }
 }

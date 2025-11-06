@@ -10,7 +10,6 @@ import WatchKit
 import HealthKit
 
 struct MatchView: View {
-    // 假设 MatchManager 中的 isGoalSheetPresented 等属性已恢复为 @Published var
     @StateObject var matchManager = MatchManager()
     @ObservedObject var connectivity = WatchConnectivityManager.shared
     @State private var feedbackMessage: String = ""
@@ -60,6 +59,13 @@ struct MatchView: View {
                         .foregroundColor(.orange)
                 }
                 .transition(.opacity)
+            } else if let criticalMessage = matchManager.criticalFeedbackMessage {
+                // 显示来自 MatchManager 的严重警告
+                Text(criticalMessage)
+                    .font(.caption2)
+                    .foregroundColor(.red)
+                    .transition(.opacity)
+                    .padding(.top, 2)
             } else {
                 // Feedback 提示
                 if showFeedback {
@@ -89,21 +95,18 @@ struct MatchView: View {
                 }
             }
 
-            // Event Buttons
+            // Event Buttons (保持简洁语法，依赖编译器清理)
             HStack(spacing: 8) {
-                // ✅ 恢复：使用最简洁的语法 (依赖于 DerivedData 的清理)
                 Button { matchManager.isGoalSheetPresented = true } label: {
                     Image(systemName: "soccerball")
                 }
                 .disabled(!matchManager.isRunning)
                 
-                // ✅ 恢复：使用最简洁的语法
                 Button { matchManager.isCardSheetPresented = true } label: {
                     Image(systemName: "rectangle.fill.on.rectangle.fill")
                 }
                 .disabled(!matchManager.isRunning)
                 
-                // ✅ 恢复：使用最简洁的语法
                 Button { matchManager.isSubstitutionSheetPresented = true } label: {
                     Image(systemName: "arrow.triangle.2.circlepath")
                 }
@@ -111,17 +114,16 @@ struct MatchView: View {
             }
             .font(.title3)
 
-            // Control Buttons
+            // Control Buttons (保持不变)
             HStack(spacing: 8) {
                 
-                // 控制键：Kick-off / Stop Time
-                Button(matchManager.isRunning ? "Stop Time" : "Kick-off") {
+                Button(matchManager.isRunning ? "Stop Time" : "Kick off") {
                     if matchManager.isRunning {
                         matchManager.stopTime()
                         triggerFeedback("Interruption Recorded")
                     } else {
                         matchManager.startMatch()
-                        triggerFeedback("Kick-off / Resume")
+                        triggerFeedback("Kick off / Resume")
                     }
                 }
                 
@@ -140,7 +142,7 @@ struct MatchView: View {
             }
             Spacer()
         }
-        // Sheets: isPresented 保持 $ 访问 Binding
+        // Sheets: 保持 $ 访问 Binding
         .sheet(isPresented: $matchManager.isGoalSheetPresented) {
             GoalTypeSheet(matchManager: matchManager)
         }
@@ -153,7 +155,7 @@ struct MatchView: View {
         .animation(.easeInOut, value: matchManager.recommendedStoppageTime)
     }
     
-    // MARK: - 时间格式化
+    // MARK: - 时间格式化 (保持不变)
     private func formatTime(_ time: TimeInterval) -> String {
         let totalSeconds = Int(time.rounded(.down))
         let minutes = totalSeconds / 60
