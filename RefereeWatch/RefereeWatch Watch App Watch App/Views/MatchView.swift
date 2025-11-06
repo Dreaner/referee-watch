@@ -5,6 +5,7 @@
 //  Created by Xingnan Zhu on 14/10/25.
 //
 
+
 import SwiftUI
 import WatchKit
 import HealthKit
@@ -48,7 +49,7 @@ struct MatchView: View {
                     .foregroundColor(.secondary)
             }
             
-            // 补时推荐显示
+            // 补时推荐显示 / 严重警告 / Feedback
             if matchManager.recommendedStoppageTime > 0 {
                 VStack(spacing: 2) {
                     Text("Recommended Stoppage:")
@@ -60,7 +61,6 @@ struct MatchView: View {
                 }
                 .transition(.opacity)
             } else if let criticalMessage = matchManager.criticalFeedbackMessage {
-                // 显示来自 MatchManager 的严重警告
                 Text(criticalMessage)
                     .font(.caption2)
                     .foregroundColor(.red)
@@ -95,7 +95,7 @@ struct MatchView: View {
                 }
             }
 
-            // Event Buttons (保持简洁语法，依赖编译器清理)
+            // Event Buttons
             HStack(spacing: 8) {
                 Button { matchManager.isGoalSheetPresented = true } label: {
                     Image(systemName: "soccerball")
@@ -114,16 +114,16 @@ struct MatchView: View {
             }
             .font(.title3)
 
-            // Control Buttons (保持不变)
+            // Control Buttons
             HStack(spacing: 8) {
                 
-                Button(matchManager.isRunning ? "Stop Time" : "Kick off") {
+                Button(matchManager.isRunning ? "Stop Time" : "Kick-off") {
                     if matchManager.isRunning {
                         matchManager.stopTime()
                         triggerFeedback("Interruption Recorded")
                     } else {
                         matchManager.startMatch()
-                        triggerFeedback("Kick off / Resume")
+                        triggerFeedback("Kick-off / Resume")
                     }
                 }
                 
@@ -142,7 +142,11 @@ struct MatchView: View {
             }
             Spacer()
         }
-        // Sheets: 保持 $ 访问 Binding
+        // ⚠️ 移除：Digital Crown Interaction (不再需要)
+        // .focusable()
+        // .digitalCrownRotation(...)
+        // .rotationMode(.governed)
+        
         .sheet(isPresented: $matchManager.isGoalSheetPresented) {
             GoalTypeSheet(matchManager: matchManager)
         }

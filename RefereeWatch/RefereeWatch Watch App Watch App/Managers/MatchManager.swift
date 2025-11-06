@@ -41,7 +41,6 @@ class MatchManager: ObservableObject {
     @Published var isCardSheetPresented = false
     @Published var isSubstitutionSheetPresented = false
 
-    // ✅ 修复 2: 新增 Critical Feedback Message
     @Published var criticalFeedbackMessage: String? = nil
     
     // MARK: - Match control
@@ -63,7 +62,7 @@ class MatchManager: ObservableObject {
         isRunning = true
         WKInterfaceDevice.current().play(.success)
         startRecommendationTimer()
-        criticalFeedbackMessage = nil // 清除旧的严重警告
+        criticalFeedbackMessage = nil
     }
     
     func stopTime() {
@@ -75,7 +74,7 @@ class MatchManager: ObservableObject {
             stoppageTimeStart = Date()
         }
         WKInterfaceDevice.current().play(.click)
-        criticalFeedbackMessage = nil // 清除旧的严重警告
+        criticalFeedbackMessage = nil
     }
 
     func endHalf() {
@@ -106,6 +105,7 @@ class MatchManager: ObservableObject {
     
     func resetMatch() {
         workoutManager.endWorkout()
+        
         homeScore = 0
         awayScore = 0
         timeAtEndOfFirstHalf = 0
@@ -116,10 +116,12 @@ class MatchManager: ObservableObject {
         recommendedStoppageTime = 0
         stoppageTimeStart = nil
         stopRecommendationTimer()
-        criticalFeedbackMessage = nil // 清除
+        criticalFeedbackMessage = nil
     }
 
-    // MARK: - Events
+    // ⚠️ 移除：adjustStoppageTime(by seconds: TimeInterval) 函数
+
+    // MARK: - Events (保持不变)
     func addEvent(_ event: MatchEvent) {
         events.append(event)
         switch event.type {
@@ -153,7 +155,6 @@ class MatchManager: ObservableObject {
                 )
                 addEvent(redEvent)
                 WKInterfaceDevice.current().play(.failure)
-                // ✅ 修复 2: 添加提示语
                 criticalFeedbackMessage = "2 YELLOWS = EXPULSION (RED)! Player #\(playerNumber)"
             }
         }

@@ -97,18 +97,6 @@ class WorkoutManager: NSObject, ObservableObject {
         session?.end()
         running = false
         print("⏹️ Workout Session Ended.")
-        
-        // 结束收集数据并保存到 Health App
-        builder?.endCollection(withEnd: Date()) { success, error in
-            self.builder?.finishWorkout { workout, error in
-                guard workout != nil else {
-                    print("❌ Failed to finish workout: \(error?.localizedDescription ?? "Unknown error")")
-                    return
-                }
-                print("💾 Workout saved to Health App.")
-                self.resetState()
-            }
-        }
     }
     
     private func resetState() {
@@ -120,10 +108,9 @@ class WorkoutManager: NSObject, ObservableObject {
     }
 }
 
-// MARK: - HKWorkoutSessionDelegate & HKLiveWorkoutBuilderDelegate
+// MARK: - HKWorkoutSessionDelegate (确保这个 delegate 存在且正确)
 extension WorkoutManager: HKWorkoutSessionDelegate {
     func workoutSession(_ workoutSession: HKWorkoutSession, didChangeTo toState: HKWorkoutSessionState, from fromState: HKWorkoutSessionState, date: Date) {
-        // 在实际应用中，这里可以处理状态变化（例如通知用户会话已暂停）
         DispatchQueue.main.async {
             switch toState {
             case .running:
@@ -132,6 +119,18 @@ extension WorkoutManager: HKWorkoutSessionDelegate {
                 print("Session changed to Paused")
             case .ended:
                 print("Session changed to Ended")
+                
+                // ✅ 关键修复点：当 Session 状态变为 .ended 时，才结束 Builder 并保存 Workout
+                self.builder?.endCollection(withEnd: Date()) { (success, error) in
+                    self.builder?.finishWorkout { (workout, error) in
+                        guard workout != nil else {
+                            print("❌ Failed to finish workout: \(error?.localizedDescription ?? "Unknown error")")
+                            return
+                        }
+                        print("💾 Workout saved to Health App.")
+                        self.resetState()
+                    }
+                }
             default:
                 break
             }
