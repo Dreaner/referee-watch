@@ -5,6 +5,7 @@
 //  Created by Xingnan Zhu on 14/10/25.
 //
 
+// 文件: RefereeWatch/RefereeWatch Watch App Watch App/Views/MatchView.swift (UI 同步最终版)
 
 import SwiftUI
 import WatchKit
@@ -16,16 +17,24 @@ struct MatchView: View {
     @State private var feedbackMessage: String = ""
     @State private var showFeedback: Bool = false
     
-    // 计时器显示逻辑：下半场从 45:00.00 开始
+    // 计时器显示逻辑
     private var currentDisplayTime: TimeInterval {
-        let totalElapsedTime = matchManager.workoutManager.elapsedTime
+        let currentSessionTime = matchManager.workoutManager.elapsedTime
+        let halfDuration: TimeInterval = matchManager.halfDuration // 45 minutes (2700秒)
 
         if matchManager.currentHalf == 1 {
-            return totalElapsedTime
+            // H1: Timer 永不停，直接显示 Session 时间
+            return currentSessionTime
         } else {
-            let baseTime: TimeInterval = matchManager.halfDuration
-            let timeInSecondHalf = totalElapsedTime - matchManager.timeAtEndOfFirstHalf
-            return baseTime + timeInSecondHalf
+            // H2:
+            
+            if matchManager.isHalftime {
+                // H2 中场休息：固定显示 45:00
+                return halfDuration
+            } else {
+                // H2 运行中：45:00 + 新 Session 流逝时间
+                return halfDuration + currentSessionTime
+            }
         }
     }
     
@@ -78,9 +87,9 @@ struct MatchView: View {
             }
 
 
-            // Timer (高精度显示)
+            // Timer (只显示 MM:SS)
             Text(formatTime(currentDisplayTime))
-                .font(.system(size: 28, weight: .bold, design: .monospaced))
+                .font(.system(size: 38, weight: .bold, design: .monospaced))
             
             // Scoreboard
             HStack {
@@ -116,37 +125,46 @@ struct MatchView: View {
 
             // Control Buttons
             HStack(spacing: 8) {
+                // 左键：Kick-off (固定功能，只在未运行时启动)
+                Button {
+                    matchManager.startMatch()
+                    triggerFeedback("Kick-off / Resume")
+                } label: {
+                    Image(systemName: "play.circle.fill") // 播放圆圈填充图标
+                        .font(.title2)
+                }
+                .tint(.green) // ✅ 绿色：开始
+                .disabled(matchManager.isRunning) // 运行时禁用
                 
-                Button(matchManager.isRunning ? "Stop Time" : "Kick-off") {
-                    if matchManager.isRunning {
-                        matchManager.stopTime()
-                        triggerFeedback("Interruption Recorded")
+                // 中键：记录补时开始/结束
+                Button {
+                    matchManager.recordStoppageTime()
+                    triggerFeedback(matchManager.isStoppageRecording ? "Stoppage Recording Started" : "Stoppage Recording Ended")
+                } label: {
+                    Image(systemName: matchManager.isStoppageRecording ? "hourglass.bottomhalf.fill" : "hourglass.tophalf.fill") // ✅ 更直观的沙漏切换
+                        .font(.title2)
+                }
+                .tint(.orange) // ✅ 橙色：补时记录
+                .disabled(matchManager.isHalftime) // 半场休息时禁用
+                
+                // 右键：结束半场 / 结束全场
+                Button {
+                    if matchManager.currentHalf == 1 {
+                        matchManager.endHalf()
+                        triggerFeedback("Halftime")
                     } else {
-                        matchManager.startMatch()
-                        triggerFeedback("Kick-off / Resume")
+                        matchManager.endMatch()
+                        triggerFeedback("Match Ended")
                     }
+                } label: {
+                    Image(systemName: matchManager.currentHalf == 1 ? "pause.circle.fill" : "stop.circle.fill") // 暂停/停止圆圈填充图标
+                        .font(.title2)
                 }
-                
-                Button("End Half") {
-                    matchManager.endHalf()
-                    triggerFeedback(matchManager.currentHalf == 1 ? "Halftime" : "Full Time")
-                }
-                
-                Button("End Match") {
-                    let report = matchManager.generateMatchReport()
-                    WatchConnectivityManager.shared.sendMatchReport(report)
-                    matchManager.resetMatch()
-                    triggerFeedback("Match Ended, Report Sent")
-                }
-                .disabled(matchManager.currentHalf == 1 && matchManager.isRunning)
+                .tint(.red)
             }
             Spacer()
         }
-        // ⚠️ 移除：Digital Crown Interaction (不再需要)
-        // .focusable()
-        // .digitalCrownRotation(...)
-        // .rotationMode(.governed)
-        
+        // Sheets: 保持 $ 访问 Binding
         .sheet(isPresented: $matchManager.isGoalSheetPresented) {
             GoalTypeSheet(matchManager: matchManager)
         }
@@ -159,14 +177,13 @@ struct MatchView: View {
         .animation(.easeInOut, value: matchManager.recommendedStoppageTime)
     }
     
-    // MARK: - 时间格式化 (保持不变)
+    // MARK: - 时间格式化 (只显示 MM:SS)
     private func formatTime(_ time: TimeInterval) -> String {
         let totalSeconds = Int(time.rounded(.down))
         let minutes = totalSeconds / 60
         let seconds = totalSeconds % 60
-        let centi = Int((time.truncatingRemainder(dividingBy: 1)) * 100)
         
-        return String(format: "%02d:%02d.%02d", minutes, seconds, centi)
+        return String(format: "%02d:%02d", minutes, seconds)
     }
     
     private func formatStoppageTime(_ time: TimeInterval) -> String {
@@ -185,6 +202,7 @@ struct MatchView: View {
     }
 }
 
+// MARK: Preview
 #Preview {
     MatchView()
 }

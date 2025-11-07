@@ -5,6 +5,8 @@
 //  Created by Xingnan Zhu on 22/10/25.
 //
 
+// 文件: RefereeWatch/RefereeWatch Watch App Watch App/Managers/MatchManager.swift (修复 Kick-off 逻辑)
+
 import Foundation
 import Combine
 import WatchKit
@@ -24,6 +26,8 @@ class MatchManager: ObservableObject {
     @Published var homeScore = 0
     @Published var awayScore = 0
     @Published var isRunning = false
+    @Published var isStoppageRecording = false
+    @Published var isHalftime = false
     @Published var events: [MatchEvent] = []
     
     // MARK: - Match control
@@ -31,8 +35,8 @@ class MatchManager: ObservableObject {
     @Published var halfDuration: TimeInterval = 45 * 60 // 45 minutes
     
     // MARK: - Stoppage Time
-    @Published private(set) var totalStoppageTime: TimeInterval = 0
-    private var stoppageTimeStart: Date?
+    @Published private(set) var totalStoppageTime: TimeInterval = 0 // 当前半场累计中断时长
+    private var stoppageTimeStart: Date? // 中断开始的绝对时间戳
     @Published private(set) var recommendedStoppageTime: TimeInterval = 0
     private var recommendationTimer: AnyCancellable?
     
@@ -43,66 +47,107 @@ class MatchManager: ObservableObject {
 
     @Published var criticalFeedbackMessage: String? = nil
     
-    // MARK: - Match control
+    // MARK: - Match control: 左键 (Kick-off)
     func startMatch() {
-        guard !isRunning else { return }
+        // ✅ 修复：只检查是否已经在运行。允许在 isHalftime = true 时启动第二半场。
+        guard !isRunning else {
+             return
+        }
         
-        if currentHalf == 1 {
-            workoutManager.startWorkout()
-        } else {
-            workoutManager.resumeWorkout()
-        }
-
-        if let start = stoppageTimeStart {
-            let interruptionDuration = Date().timeIntervalSince(start)
-            totalStoppageTime += interruptionDuration
-            stoppageTimeStart = nil
-        }
+        // H1 Kick-off 或 H2 Kick-off：启动 HealthKit Session
+        workoutManager.startWorkout()
         
         isRunning = true
+        isHalftime = false // 清除半场休息状态，允许 UI 恢复走秒
         WKInterfaceDevice.current().play(.success)
         startRecommendationTimer()
         criticalFeedbackMessage = nil
     }
-    
-    func stopTime() {
-        guard isRunning else { return }
-        
-        isRunning = false
-        
-        if stoppageTimeStart == nil {
-            stoppageTimeStart = Date()
-        }
-        WKInterfaceDevice.current().play(.click)
-        criticalFeedbackMessage = nil
-    }
 
+    // MARK: - Stoppage Logic: 中键 (Record Stoppage)
+    func recordStoppageTime() {
+        guard isRunning || isStoppageRecording else {
+            // 如果 Timer 还没开始，补时记录无意义
+            WKInterfaceDevice.current().play(.failure)
+            return
+        }
+
+        if isStoppageRecording {
+            // 结束记录
+            isStoppageRecording = false
+            
+            // 累加中断时间
+            if let start = stoppageTimeStart {
+                totalStoppageTime += Date().timeIntervalSince(start)
+                stoppageTimeStart = nil
+            }
+            WKInterfaceDevice.current().play(.success)
+            // Note: triggerFeedback removed, MatchView handles it now
+        } else {
+            // 开始记录
+            isStoppageRecording = true
+            
+            if stoppageTimeStart == nil {
+                stoppageTimeStart = Date()
+            }
+            WKInterfaceDevice.current().play(.click)
+            // Note: triggerFeedback removed, MatchView handles it now
+        }
+    }
+    
+    // MARK: - End Half/Match Logic: 右键 (End Half/End Match)
     func endHalf() {
-        isRunning = false
+        guard isRunning || isHalftime else {
+            // 比赛未启动，不能结束半场
+            WKInterfaceDevice.current().play(.failure)
+            return
+        }
+
         stopRecommendationTimer()
 
-        if let start = stoppageTimeStart {
+        // 如果在记录补时状态下结束半场，最终累计中断时间
+        if isStoppageRecording, let start = stoppageTimeStart {
             totalStoppageTime += Date().timeIntervalSince(start)
             stoppageTimeStart = nil
+            isStoppageRecording = false
         }
         
         WKInterfaceDevice.current().play(.notification)
 
         if currentHalf == 1 {
+            // H1 结束：记录时间并结束 HealthKit Session (冻结 Timer)
+            workoutManager.endWorkout()
+            
             timeAtEndOfFirstHalf = workoutManager.elapsedTime
+            
             print("First Half Stoppage Time: \(Int(totalStoppageTime/60)) minutes.")
             currentHalf = 2
             totalStoppageTime = 0
             recommendedStoppageTime = 0
+            isHalftime = true // 切换到半场休息状态，UI将冻结在 45:00
+            isRunning = false
         } else {
-            WKInterfaceDevice.current().play(.failure)
-            workoutManager.endWorkout()
-            let report = generateMatchReport()
-            WatchConnectivityManager.shared.sendMatchReport(report)
-            print("📤 Match report automatically sent to iPhone: \(report.homeTeam) vs \(report.awayTeam)")
+            // End Match 逻辑现在由 EndMatch 按钮处理
         }
     }
     
+    func endMatch() {
+        guard currentHalf == 2 else {
+            WKInterfaceDevice.current().play(.failure)
+            // Note: Feedback should be handled by the MatchView button.
+            return
+        }
+        
+        WKInterfaceDevice.current().play(.failure)
+        workoutManager.endWorkout()
+        let report = generateMatchReport()
+        WatchConnectivityManager.shared.sendMatchReport(report)
+        
+        // 重置所有状态
+        resetMatch()
+        // Note: Feedback should be handled by the MatchView button.
+    }
+
     func resetMatch() {
         workoutManager.endWorkout()
         
@@ -112,16 +157,22 @@ class MatchManager: ObservableObject {
         events.removeAll()
         currentHalf = 1
         isRunning = false
+        isHalftime = false
+        isStoppageRecording = false
         totalStoppageTime = 0
         recommendedStoppageTime = 0
         stoppageTimeStart = nil
         stopRecommendationTimer()
         criticalFeedbackMessage = nil
     }
+    
+    // MARK: - Helper (保持不变)
+    private func triggerFeedback(_ message: String) {
+        // MatchManager now relies on MatchView for all user feedback strings.
+    }
 
-    // ⚠️ 移除：adjustStoppageTime(by seconds: TimeInterval) 函数
-
-    // MARK: - Events (保持不变)
+    // ... (Events, Recommendation Logic, MatchReport 保持不变)
+    
     func addEvent(_ event: MatchEvent) {
         events.append(event)
         switch event.type {
@@ -189,7 +240,7 @@ class MatchManager: ObservableObject {
         if currentHalf == 1 {
             elapsedTimeInHalf = totalElapsedTime
         } else {
-            elapsedTimeInHalf = totalElapsedTime - timeAtEndOfFirstHalf
+            elapsedTimeInHalf = totalElapsedTime
         }
         
         var currentAccumulation = totalStoppageTime
@@ -210,10 +261,13 @@ class MatchManager: ObservableObject {
     // MARK: - MatchReport (保持不变)
     func generateMatchReport() -> MatchReport {
         let finalFirstHalfTime = timeAtEndOfFirstHalf
-        let finalSecondHalfTime = workoutManager.elapsedTime - finalFirstHalfTime
+        let finalSecondHalfTime = workoutManager.elapsedTime
         
         return MatchReport(
-            id: UUID(), date: Date(), homeTeam: homeTeamName, awayTeam: awayTeamName, homeScore: homeScore, awayScore: awayScore, firstHalfDuration: finalFirstHalfTime, secondHalfDuration: finalSecondHalfTime, events: events
+            id: UUID(), date: Date(), homeTeam: homeTeamName, awayTeam: awayTeamName, homeScore: homeScore, awayScore: awayScore,
+            firstHalfDuration: finalFirstHalfTime,
+            secondHalfDuration: finalSecondHalfTime,
+            events: events
         )
     }
 }
