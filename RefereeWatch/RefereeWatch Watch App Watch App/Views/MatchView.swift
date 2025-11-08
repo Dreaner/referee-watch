@@ -141,7 +141,7 @@ struct MatchView: View {
                     matchManager.recordStoppageTime()
                     triggerFeedback(matchManager.isStoppageRecording ? "Stoppage Recording Started" : "Stoppage Recording Ended")
                 } label: {
-                    Image(systemName: matchManager.isStoppageRecording ? "hourglass.bottomhalf.fill" : "hourglass.tophalf.fill") // ✅ 更直观的沙漏切换
+                    Image(systemName: matchManager.isStoppageRecording ? "hourglass.bottomhalf.fill" : "hourglass.tophalf.fill")
                         .font(.title2)
                 }
                 .tint(.orange) // ✅ 橙色：补时记录
@@ -157,13 +157,16 @@ struct MatchView: View {
                         triggerFeedback("Match Ended")
                     }
                 } label: {
-                    Image(systemName: matchManager.currentHalf == 1 ? "pause.circle.fill" : "stop.circle.fill") // 暂停/停止圆圈填充图标
+                    Image(systemName: matchManager.currentHalf == 1 ? "pause.circle.fill" : "stop.circle.fill")
                         .font(.title2)
                 }
                 .tint(.red)
             }
-            Spacer()
         }
+        .padding(.horizontal, 10) // 左右增加 10pt 间隙
+        .padding(.bottom, 20)     // 底部增加 5pt 间隙 (WatchOS 默认顶部有间隙)
+        
+        
         // Sheets: 保持 $ 访问 Binding
         .sheet(isPresented: $matchManager.isGoalSheetPresented) {
             GoalTypeSheet(matchManager: matchManager)
