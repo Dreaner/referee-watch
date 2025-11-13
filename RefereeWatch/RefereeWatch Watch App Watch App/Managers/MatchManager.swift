@@ -5,7 +5,7 @@
 //  Created by Xingnan Zhu on 22/10/25.
 //
 
-// 文件: RefereeWatch/RefereeWatch Watch App Watch App/Managers/MatchManager.swift (修复 Kick-off 逻辑)
+// 文件: RefereeWatch/RefereeWatch Watch App Watch App/Managers/MatchManager.swift (最终专业版)
 
 import Foundation
 import Combine
@@ -25,10 +25,15 @@ class MatchManager: ObservableObject {
     // MARK: - Scores and state
     @Published var homeScore = 0
     @Published var awayScore = 0
+    // isRunning: 指示比赛 Timer 是否在走 (H1, H2运行时为true)
     @Published var isRunning = false
     @Published var isStoppageRecording = false
     @Published var isHalftime = false
     @Published var events: [MatchEvent] = []
+    
+    // MARK: - Red Card Count
+    @Published var homeRedCards: Int = 0
+    @Published var awayRedCards: Int = 0
     
     // MARK: - Match control
     @Published var currentHalf: Int = 1
@@ -49,16 +54,13 @@ class MatchManager: ObservableObject {
     
     // MARK: - Match control: 左键 (Kick-off)
     func startMatch() {
-        // ✅ 修复：只检查是否已经在运行。允许在 isHalftime = true 时启动第二半场。
-        guard !isRunning else {
-             return
-        }
+        guard !isRunning else { return }
         
         // H1 Kick-off 或 H2 Kick-off：启动 HealthKit Session
         workoutManager.startWorkout()
         
         isRunning = true
-        isHalftime = false // 清除半场休息状态，允许 UI 恢复走秒
+        isHalftime = false
         WKInterfaceDevice.current().play(.success)
         startRecommendationTimer()
         criticalFeedbackMessage = nil
@@ -66,8 +68,8 @@ class MatchManager: ObservableObject {
 
     // MARK: - Stoppage Logic: 中键 (Record Stoppage)
     func recordStoppageTime() {
-        guard isRunning || isStoppageRecording else {
-            // 如果 Timer 还没开始，补时记录无意义
+        guard !isHalftime else {
+            // 半场休息时禁用补时记录
             WKInterfaceDevice.current().play(.failure)
             return
         }
@@ -82,7 +84,6 @@ class MatchManager: ObservableObject {
                 stoppageTimeStart = nil
             }
             WKInterfaceDevice.current().play(.success)
-            // Note: triggerFeedback removed, MatchView handles it now
         } else {
             // 开始记录
             isStoppageRecording = true
@@ -91,21 +92,20 @@ class MatchManager: ObservableObject {
                 stoppageTimeStart = Date()
             }
             WKInterfaceDevice.current().play(.click)
-            // Note: triggerFeedback removed, MatchView handles it now
         }
     }
     
     // MARK: - End Half/Match Logic: 右键 (End Half/End Match)
     func endHalf() {
-        guard isRunning || isHalftime else {
-            // 比赛未启动，不能结束半场
+        guard !isHalftime else {
+            // 已经在半场休息，不能重复结束
             WKInterfaceDevice.current().play(.failure)
             return
         }
 
         stopRecommendationTimer()
 
-        // 如果在记录补时状态下结束半场，最终累计中断时间
+        // 最终累计中断时间
         if isStoppageRecording, let start = stoppageTimeStart {
             totalStoppageTime += Date().timeIntervalSince(start)
             stoppageTimeStart = nil
@@ -126,15 +126,13 @@ class MatchManager: ObservableObject {
             recommendedStoppageTime = 0
             isHalftime = true // 切换到半场休息状态，UI将冻结在 45:00
             isRunning = false
-        } else {
-            // End Match 逻辑现在由 EndMatch 按钮处理
         }
+        // H2 End Match 逻辑现在由 EndMatch 按钮处理
     }
     
     func endMatch() {
         guard currentHalf == 2 else {
             WKInterfaceDevice.current().play(.failure)
-            // Note: Feedback should be handled by the MatchView button.
             return
         }
         
@@ -145,7 +143,6 @@ class MatchManager: ObservableObject {
         
         // 重置所有状态
         resetMatch()
-        // Note: Feedback should be handled by the MatchView button.
     }
 
     func resetMatch() {
@@ -164,21 +161,22 @@ class MatchManager: ObservableObject {
         stoppageTimeStart = nil
         stopRecommendationTimer()
         criticalFeedbackMessage = nil
-    }
-    
-    // MARK: - Helper (保持不变)
-    private func triggerFeedback(_ message: String) {
-        // MatchManager now relies on MatchView for all user feedback strings.
+        homeRedCards = 0
+        awayRedCards = 0
     }
 
-    // ... (Events, Recommendation Logic, MatchReport 保持不变)
-    
+    // MARK: - Events
     func addEvent(_ event: MatchEvent) {
         events.append(event)
         switch event.type {
         case .goal:
             if event.team == "home" { homeScore += 1 }
             else if event.team == "away" { awayScore += 1 }
+        case .card:
+            if event.cardType == .red {
+                if event.team == "home" { homeRedCards += 1 }
+                else { awayRedCards += 1 }
+            }
         default: break
         }
     }
@@ -218,7 +216,7 @@ class MatchManager: ObservableObject {
         addEvent(event)
     }
 
-    // MARK: - Recommendation Logic (保持不变)
+    // MARK: - Recommendation Logic
     private func startRecommendationTimer() {
         recommendationTimer = Timer.publish(every: 1, on: .main, in: .common)
             .autoconnect()

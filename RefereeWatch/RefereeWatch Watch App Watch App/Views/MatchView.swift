@@ -5,7 +5,7 @@
 //  Created by Xingnan Zhu on 14/10/25.
 //
 
-// 文件: RefereeWatch/RefereeWatch Watch App Watch App/Views/MatchView.swift (UI 同步最终版)
+// 文件: RefereeWatch/RefereeWatch Watch App Watch App/Views/MatchView.swift
 
 import SwiftUI
 import WatchKit
@@ -29,7 +29,7 @@ struct MatchView: View {
             // H2:
             
             if matchManager.isHalftime {
-                // H2 中场休息：固定显示 45:00
+                // 关键：H2 中场休息时，固定显示 45:00
                 return halfDuration
             } else {
                 // H2 运行中：45:00 + 新 Session 流逝时间
@@ -42,7 +42,7 @@ struct MatchView: View {
         VStack(spacing: 5) {
             Spacer()
             
-            // 顶部状态行
+            // MARK: Status Point
             ZStack {
                 HStack {
                     Circle()
@@ -87,24 +87,39 @@ struct MatchView: View {
             }
 
 
-            // Timer (只显示 MM:SS)
+            // MARK: Timer (只显示 MM:SS)
             Text(formatTime(currentDisplayTime))
                 .font(.system(size: 38, weight: .bold, design: .monospaced))
             
-            // Scoreboard
+            
+            // MARK: Scoreboard
             HStack {
                 VStack {
                     Text(matchManager.homeTeamName).font(.caption2)
-                    Text("\(matchManager.homeScore)").font(.title2)
+                    // 主队红牌标记
+                    HStack(spacing: 0) { // 紧密排列
+                        ForEach(0..<matchManager.homeRedCards, id: \.self) { _ in
+                            Text("🟥").font(.callout)
+                                .foregroundColor(.red)
+                        }
+                        Text("\(matchManager.homeScore)").font(.title2)
+                    }
                 }
                 Text("-").font(.title2)
                 VStack {
                     Text(matchManager.awayTeamName).font(.caption2)
-                    Text("\(matchManager.awayScore)").font(.title2)
+                    // 客队红牌标记
+                    HStack(spacing: 0) { // 紧密排列
+                        Text("\(matchManager.awayScore)").font(.title2)
+                        ForEach(0..<matchManager.awayRedCards, id: \.self) { _ in
+                            Text("🟥").font(.callout)
+                                .foregroundColor(.red)
+                        }
+                    }
                 }
             }
 
-            // Event Buttons
+            // MARK: Event Buttons
             HStack(spacing: 8) {
                 Button { matchManager.isGoalSheetPresented = true } label: {
                     Image(systemName: "soccerball")
@@ -123,7 +138,7 @@ struct MatchView: View {
             }
             .font(.title3)
 
-            // Control Buttons
+            // MARK: Control Buttons
             HStack(spacing: 8) {
                 // 左键：Kick-off (固定功能，只在未运行时启动)
                 Button {
@@ -133,7 +148,7 @@ struct MatchView: View {
                     Image(systemName: "play.circle.fill") // 播放圆圈填充图标
                         .font(.title2)
                 }
-                .tint(.green) // ✅ 绿色：开始
+                .tint(.green) // 绿色：开始
                 .disabled(matchManager.isRunning) // 运行时禁用
                 
                 // 中键：记录补时开始/结束
@@ -144,7 +159,7 @@ struct MatchView: View {
                     Image(systemName: matchManager.isStoppageRecording ? "hourglass.bottomhalf.fill" : "hourglass.tophalf.fill")
                         .font(.title2)
                 }
-                .tint(.orange) // ✅ 橙色：补时记录
+                .tint(.orange) // 橙色：补时记录
                 .disabled(matchManager.isHalftime) // 半场休息时禁用
                 
                 // 右键：结束半场 / 结束全场
@@ -164,10 +179,8 @@ struct MatchView: View {
             }
         }
         .padding(.horizontal, 10) // 左右增加 10pt 间隙
-        .padding(.bottom, 20)     // 底部增加 5pt 间隙 (WatchOS 默认顶部有间隙)
+        .padding(.bottom, 20)     // 底部增加 20pt 间隙 (WatchOS 默认顶部有间隙)
         
-        
-        // Sheets: 保持 $ 访问 Binding
         .sheet(isPresented: $matchManager.isGoalSheetPresented) {
             GoalTypeSheet(matchManager: matchManager)
         }
