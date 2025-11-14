@@ -143,9 +143,9 @@ struct MatchView: View {
                 // 左键：Kick-off (固定功能，只在未运行时启动)
                 Button {
                     matchManager.startMatch()
-                    triggerFeedback("Kick-off / Resume")
+                    triggerFeedback("Kick-off")
                 } label: {
-                    Image(systemName: "play.circle.fill") // 播放圆圈填充图标
+                    Image(systemName: "play.circle.fill")
                         .font(.title2)
                 }
                 .tint(.green) // 绿色：开始

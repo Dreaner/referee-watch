@@ -29,7 +29,7 @@ struct CardTypeSheet: View {
                     step = 3
                 }
             } else if step == 3 {
-                NumberInputSheet(selectedNumber: $selectedPlayer) {
+                KeypadNumberInputSheet(selectedNumber: $selectedPlayer) {
                     if let team = selectedTeam, let number = selectedPlayer, let cardType = selectedCardType {
                         matchManager.addCard(team: team, playerNumber: number, cardType: cardType)
                     }

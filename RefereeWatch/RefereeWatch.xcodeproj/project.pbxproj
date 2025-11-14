@@ -50,13 +50,6 @@
 			);
 			target = AD5998022E9EF21500D6A19A /* RefereeWatch Watch App Watch App */;
 		};
-		AD7B9D0F2EBD1342004C0392 /* Exceptions for "RefereeWatch Watch App Watch App" folder in "RefereeWatch Watch App Watch App" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				"RefereeWatch-Watch-App-Watch-App-Info.plist",
-			);
-			target = AD5998022E9EF21500D6A19A /* RefereeWatch Watch App Watch App */;
-		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -75,9 +68,6 @@
 		};
 		AD5998042E9EF21500D6A19A /* RefereeWatch Watch App Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				AD7B9D0F2EBD1342004C0392 /* Exceptions for "RefereeWatch Watch App Watch App" folder in "RefereeWatch Watch App Watch App" target */,
-			);
 			path = "RefereeWatch Watch App Watch App";
 			sourceTree = "<group>";
 		};

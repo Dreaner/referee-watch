@@ -94,7 +94,6 @@ class WorkoutManager: NSObject, ObservableObject {
         }
     }
     
-    // ⚠️ 移除 pauseWorkout/resumeWorkout 引用
 
     func endWorkout() {
         session?.end()
@@ -120,7 +119,7 @@ class WorkoutManager: NSObject, ObservableObject {
     }
 }
 
-// MARK: - HKWorkoutSessionDelegate & HKLiveWorkoutBuilderDelegate (保持不变)
+// MARK: - HKWorkoutSessionDelegate & HKLiveWorkoutBuilderDelegate
 extension WorkoutManager: HKWorkoutSessionDelegate {
     func workoutSession(_ workoutSession: HKWorkoutSession, didChangeTo toState: HKWorkoutSessionState, from fromState: HKWorkoutSessionState, date: Date) {
         DispatchQueue.main.async {

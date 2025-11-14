@@ -29,7 +29,7 @@ struct GoalTypeSheet: View {
                     step = 3
                 }
             } else if step == 3 {
-                NumberInputSheet(selectedNumber: $selectedPlayer) {
+                KeypadNumberInputSheet(selectedNumber: $selectedPlayer) {
                     if let team = selectedTeam, let number = selectedPlayer, let goalType = selectedGoalType {
                         matchManager.addGoal(team: team, playerNumber: number, goalType: goalType)
                     }
