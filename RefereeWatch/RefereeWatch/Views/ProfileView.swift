@@ -91,7 +91,7 @@ struct ProfileView: View {
                         NotificationSettingsView()
                     }
                     
-                    // ✅ 3. 添加新的用户手册按钮
+                    // 用户手册
                     Button {
                         showingUserManual = true
                     } label: {
@@ -105,7 +105,7 @@ struct ProfileView: View {
                         .cornerRadius(8)
                     }
                     .sheet(isPresented: $showingUserManual) {
-                        UserManualView() // ✅ 4. 当按钮被点击时，显示 UserManualView
+                        UserManualView()
                     }
 
                     Spacer()

@@ -20,5 +20,8 @@ struct MatchReport: Codable {
     var firstHalfDuration: TimeInterval
     var secondHalfDuration: TimeInterval
     var events: [MatchEvent]
+    
+    // ✅ 新增：为点球大战添加可选的比分字段
+    var homePenaltyScore: Int?
+    var awayPenaltyScore: Int?
 }
-

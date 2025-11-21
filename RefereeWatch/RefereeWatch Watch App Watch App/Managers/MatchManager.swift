@@ -17,6 +17,8 @@ class MatchManager: ObservableObject {
     var workoutManager = WorkoutManager.shared
     
     @Published private(set) var timeAtEndOfFirstHalf: TimeInterval = 0
+    @Published private(set) var timeAtEndOfSecondHalf: TimeInterval = 0
+    @Published private(set) var timeAtEndOfETFirstHalf: TimeInterval = 0
     
     // MARK: - Teams
     @Published var homeTeamName = "HOME"
@@ -25,7 +27,10 @@ class MatchManager: ObservableObject {
     // MARK: - Scores and state
     @Published var homeScore = 0
     @Published var awayScore = 0
-    // isRunning: 指示比赛 Timer 是否在走 (H1, H2运行时为true)
+    // ✅ 新增：点球大战比分
+    @Published var homePenaltyScore: Int? = nil
+    @Published var awayPenaltyScore: Int? = nil
+    
     @Published var isRunning = false
     @Published var isStoppageRecording = false
     @Published var isHalftime = false
@@ -38,10 +43,11 @@ class MatchManager: ObservableObject {
     // MARK: - Match control
     @Published var currentHalf: Int = 1
     @Published var halfDuration: TimeInterval = 45 * 60 // 45 minutes
+    @Published var extraTimeHalfDuration: TimeInterval = 15 * 60
     
     // MARK: - Stoppage Time
-    @Published private(set) var totalStoppageTime: TimeInterval = 0 // 当前半场累计中断时长
-    private var stoppageTimeStart: Date? // 中断开始的绝对时间戳
+    @Published private(set) var totalStoppageTime: TimeInterval = 0
+    private var stoppageTimeStart: Date?
     @Published private(set) var recommendedStoppageTime: TimeInterval = 0
     private var recommendationTimer: AnyCancellable?
     
@@ -49,16 +55,16 @@ class MatchManager: ObservableObject {
     @Published var isGoalSheetPresented = false
     @Published var isCardSheetPresented = false
     @Published var isSubstitutionSheetPresented = false
-
     @Published var criticalFeedbackMessage: String? = nil
-    
+
+    @Published var isShowingEndGameOptions = false
+    // ✅ 新增：控制点球大战 sheet 的显示
+    @Published var isShowingPenaltyShootout = false
+
     // MARK: - Match control: 左键 (Kick-off)
     func startMatch() {
         guard !isRunning else { return }
-        
-        // H1 Kick-off 或 H2 Kick-off：启动 HealthKit Session
         workoutManager.startWorkout()
-        
         isRunning = true
         isHalftime = false
         WKInterfaceDevice.current().play(.success)
@@ -69,25 +75,19 @@ class MatchManager: ObservableObject {
     // MARK: - Stoppage Logic: 中键 (Record Stoppage)
     func recordStoppageTime() {
         guard !isHalftime else {
-            // 半场休息时禁用补时记录
             WKInterfaceDevice.current().play(.failure)
             return
         }
 
         if isStoppageRecording {
-            // 结束记录
             isStoppageRecording = false
-            
-            // 累加中断时间
             if let start = stoppageTimeStart {
                 totalStoppageTime += Date().timeIntervalSince(start)
                 stoppageTimeStart = nil
             }
             WKInterfaceDevice.current().play(.success)
         } else {
-            // 开始记录
             isStoppageRecording = true
-            
             if stoppageTimeStart == nil {
                 stoppageTimeStart = Date()
             }
@@ -98,14 +98,12 @@ class MatchManager: ObservableObject {
     // MARK: - End Half/Match Logic: 右键 (End Half/End Match)
     func endHalf() {
         guard !isHalftime else {
-            // 已经在半场休息，不能重复结束
             WKInterfaceDevice.current().play(.failure)
             return
         }
 
         stopRecommendationTimer()
 
-        // 最终累计中断时间
         if isStoppageRecording, let start = stoppageTimeStart {
             totalStoppageTime += Date().timeIntervalSince(start)
             stoppageTimeStart = nil
@@ -113,44 +111,78 @@ class MatchManager: ObservableObject {
         }
         
         WKInterfaceDevice.current().play(.notification)
+        workoutManager.endWorkout()
 
         if currentHalf == 1 {
-            // H1 结束：记录时间并结束 HealthKit Session (冻结 Timer)
-            workoutManager.endWorkout()
-            
             timeAtEndOfFirstHalf = workoutManager.elapsedTime
-            
             print("First Half Stoppage Time: \(Int(totalStoppageTime/60)) minutes.")
             currentHalf = 2
-            totalStoppageTime = 0
-            recommendedStoppageTime = 0
-            isHalftime = true // 切换到半场休息状态，UI将冻结在 45:00
-            isRunning = false
+            isHalftime = true
+        } else if currentHalf == 3 {
+            timeAtEndOfETFirstHalf = workoutManager.elapsedTime
+            currentHalf = 4
+            isHalftime = true
         }
-        // H2 End Match 逻辑现在由 EndMatch 按钮处理
+        
+        totalStoppageTime = 0
+        recommendedStoppageTime = 0
+        isRunning = false
     }
     
     func endMatch() {
-        guard currentHalf == 2 else {
+        guard currentHalf == 2 || currentHalf == 4 else {
             WKInterfaceDevice.current().play(.failure)
             return
         }
-        
+        isShowingEndGameOptions = true
+    }
+    
+    func finishMatchAndReset() {
+        isShowingEndGameOptions = false
         WKInterfaceDevice.current().play(.failure)
         workoutManager.endWorkout()
         let report = generateMatchReport()
         WatchConnectivityManager.shared.sendMatchReport(report)
-        
-        // 重置所有状态
         resetMatch()
     }
+    
+    func startExtraTime() {
+        isShowingEndGameOptions = false
+        if workoutManager.running {
+            workoutManager.endWorkout()
+        }
+        timeAtEndOfSecondHalf = workoutManager.elapsedTime
+        currentHalf = 3
+        isHalftime = false
+        isRunning = false
+        totalStoppageTime = 0
+        print("✅ Ready to start Extra Time.")
+        WKInterfaceDevice.current().play(.start)
+    }
+    
+    // ✅ 修改：实现 startPenaltyShootout
+    func startPenaltyShootout() {
+        isShowingEndGameOptions = false
+        if workoutManager.running {
+            workoutManager.endWorkout()
+        }
+        // 显示点球大战 sheet
+        isShowingPenaltyShootout = true
+    }
 
+
+    // ✅ 修改：重置新增的变量
     func resetMatch() {
-        workoutManager.endWorkout()
-        
+        if workoutManager.running {
+             workoutManager.endWorkout()
+        }
         homeScore = 0
         awayScore = 0
+        homePenaltyScore = nil
+        awayPenaltyScore = nil
         timeAtEndOfFirstHalf = 0
+        timeAtEndOfSecondHalf = 0
+        timeAtEndOfETFirstHalf = 0
         events.removeAll()
         currentHalf = 1
         isRunning = false
@@ -194,7 +226,6 @@ class MatchManager: ObservableObject {
         )
         addEvent(event)
         
-        // 两黄变红逻辑
         if cardType == .yellow {
             let yellowCount = events.filter { $0.team == team && $0.playerNumber == playerNumber && $0.cardType == .yellow }.count
             
@@ -256,7 +287,8 @@ class MatchManager: ObservableObject {
         }
     }
 
-    // MARK: - MatchReport (保持不变)
+    // MARK: - MatchReport
+    // ✅ 修改：在生成报告时包含点球大战比分
     func generateMatchReport() -> MatchReport {
         let finalFirstHalfTime = timeAtEndOfFirstHalf
         let finalSecondHalfTime = workoutManager.elapsedTime
@@ -265,7 +297,9 @@ class MatchManager: ObservableObject {
             id: UUID(), date: Date(), homeTeam: homeTeamName, awayTeam: awayTeamName, homeScore: homeScore, awayScore: awayScore,
             firstHalfDuration: finalFirstHalfTime,
             secondHalfDuration: finalSecondHalfTime,
-            events: events
+            events: events,
+            homePenaltyScore: homePenaltyScore,
+            awayPenaltyScore: awayPenaltyScore
         )
     }
 }

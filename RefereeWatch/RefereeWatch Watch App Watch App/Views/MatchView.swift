@@ -17,24 +17,44 @@ struct MatchView: View {
     @State private var feedbackMessage: String = ""
     @State private var showFeedback: Bool = false
     
-    // 计时器显示逻辑
+    private var phaseText: String {
+        switch matchManager.currentHalf {
+        case 1:
+            return "Half 1"
+        case 2:
+            return matchManager.isHalftime ? "Halftime" : "Half 2"
+        case 3:
+            return "Extra Time 1"
+        case 4:
+            return matchManager.isHalftime ? "ET Halftime" : "Extra Time 2"
+        default:
+            return "Match"
+        }
+    }
+
     private var currentDisplayTime: TimeInterval {
         let currentSessionTime = matchManager.workoutManager.elapsedTime
-        let halfDuration: TimeInterval = matchManager.halfDuration // 45 minutes (2700秒)
-
-        if matchManager.currentHalf == 1 {
-            // H1: Timer 永不停，直接显示 Session 时间
+        
+        switch matchManager.currentHalf {
+        case 1:
             return currentSessionTime
-        } else {
-            // H2:
-            
+        case 2:
             if matchManager.isHalftime {
-                // 关键：H2 中场休息时，固定显示 45:00
-                return halfDuration
-            } else {
-                // H2 运行中：45:00 + 新 Session 流逝时间
-                return halfDuration + currentSessionTime
+                return matchManager.timeAtEndOfFirstHalf
             }
+            return matchManager.timeAtEndOfFirstHalf + currentSessionTime
+        case 3:
+            if !matchManager.isRunning {
+                return matchManager.timeAtEndOfFirstHalf + matchManager.timeAtEndOfSecondHalf
+            }
+            return matchManager.timeAtEndOfFirstHalf + matchManager.timeAtEndOfSecondHalf + currentSessionTime
+        case 4:
+            if matchManager.isHalftime {
+                return matchManager.timeAtEndOfFirstHalf + matchManager.timeAtEndOfSecondHalf + matchManager.timeAtEndOfETFirstHalf
+            }
+            return matchManager.timeAtEndOfFirstHalf + matchManager.timeAtEndOfSecondHalf + matchManager.timeAtEndOfETFirstHalf + currentSessionTime
+        default:
+            return 0
         }
     }
     
@@ -42,7 +62,6 @@ struct MatchView: View {
         VStack(spacing: 5) {
             Spacer()
             
-            // MARK: Status Point
             ZStack {
                 HStack {
                     Circle()
@@ -53,12 +72,11 @@ struct MatchView: View {
                     Spacer()
                 }
                 
-                Text("Half \(matchManager.currentHalf)")
+                Text(phaseText)
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
             
-            // 补时推荐显示 / 严重警告 / Feedback
             if matchManager.recommendedStoppageTime > 0 {
                 VStack(spacing: 2) {
                     Text("Recommended Stoppage:")
@@ -76,7 +94,6 @@ struct MatchView: View {
                     .transition(.opacity)
                     .padding(.top, 2)
             } else {
-                // Feedback 提示
                 if showFeedback {
                     Text(feedbackMessage)
                         .font(.caption2)
@@ -86,18 +103,13 @@ struct MatchView: View {
                 }
             }
 
-
-            // MARK: Timer (只显示 MM:SS)
             Text(formatTime(currentDisplayTime))
                 .font(.system(size: 38, weight: .bold, design: .monospaced))
             
-            
-            // MARK: Scoreboard
             HStack {
                 VStack {
                     Text(matchManager.homeTeamName).font(.caption2)
-                    // 主队红牌标记
-                    HStack(spacing: 0) { // 紧密排列
+                    HStack(spacing: 0) {
                         ForEach(0..<matchManager.homeRedCards, id: \.self) { _ in
                             Text("🟥").font(.callout)
                                 .foregroundColor(.red)
@@ -108,8 +120,7 @@ struct MatchView: View {
                 Text("-").font(.title2)
                 VStack {
                     Text(matchManager.awayTeamName).font(.caption2)
-                    // 客队红牌标记
-                    HStack(spacing: 0) { // 紧密排列
+                    HStack(spacing: 0) {
                         Text("\(matchManager.awayScore)").font(.title2)
                         ForEach(0..<matchManager.awayRedCards, id: \.self) { _ in
                             Text("🟥").font(.callout)
@@ -119,7 +130,6 @@ struct MatchView: View {
                 }
             }
 
-            // MARK: Event Buttons
             HStack(spacing: 8) {
                 Button { matchManager.isGoalSheetPresented = true } label: {
                     Image(systemName: "soccerball")
@@ -140,7 +150,6 @@ struct MatchView: View {
 
             // MARK: Control Buttons
             HStack(spacing: 8) {
-                // 左键：Kick-off (固定功能，只在未运行时启动)
                 Button {
                     matchManager.startMatch()
                     triggerFeedback("Kick-off")
@@ -148,10 +157,9 @@ struct MatchView: View {
                     Image(systemName: "play.circle.fill")
                         .font(.title2)
                 }
-                .tint(.green) // 绿色：开始
-                .disabled(matchManager.isRunning) // 运行时禁用
+                .tint(.green)
+                .disabled(matchManager.isRunning)
                 
-                // 中键：记录补时开始/结束
                 Button {
                     matchManager.recordStoppageTime()
                     triggerFeedback(matchManager.isStoppageRecording ? "Stoppage Recording Started" : "Stoppage Recording Ended")
@@ -159,27 +167,28 @@ struct MatchView: View {
                     Image(systemName: matchManager.isStoppageRecording ? "hourglass.bottomhalf.fill" : "hourglass.tophalf.fill")
                         .font(.title2)
                 }
-                .tint(.orange) // 橙色：补时记录
-                .disabled(matchManager.isHalftime) // 半场休息时禁用
+                .tint(.orange)
+                .disabled(matchManager.isHalftime)
                 
-                // 右键：结束半场 / 结束全场
                 Button {
-                    if matchManager.currentHalf == 1 {
+                    if matchManager.currentHalf == 1 || matchManager.currentHalf == 3 {
                         matchManager.endHalf()
-                        triggerFeedback("Halftime")
+                        triggerFeedback("Half End")
                     } else {
                         matchManager.endMatch()
-                        triggerFeedback("Match Ended")
+                        triggerFeedback("Full Time")
                     }
                 } label: {
-                    Image(systemName: matchManager.currentHalf == 1 ? "pause.circle.fill" : "stop.circle.fill")
+                    let isFinalPeriod = (matchManager.currentHalf == 2 || matchManager.currentHalf == 4)
+                    Image(systemName: isFinalPeriod ? "stop.circle.fill" : "pause.circle.fill")
                         .font(.title2)
                 }
                 .tint(.red)
+                .disabled(matchManager.isHalftime || !matchManager.isRunning)
             }
         }
-        .padding(.horizontal, 10) // 左右增加 10pt 间隙
-        .padding(.bottom, 20)     // 底部增加 20pt 间隙 (WatchOS 默认顶部有间隙)
+        .padding(.horizontal, 10)
+        .padding(.bottom, 20)
         
         .sheet(isPresented: $matchManager.isGoalSheetPresented) {
             GoalTypeSheet(matchManager: matchManager)
@@ -190,15 +199,39 @@ struct MatchView: View {
         .sheet(isPresented: $matchManager.isSubstitutionSheetPresented) {
             SubstitutionSheet(matchManager: matchManager)
         }
+        // ✅ 新增：添加用于显示点球大战界面的 sheet
+        .sheet(isPresented: $matchManager.isShowingPenaltyShootout) {
+            PenaltyShootoutView(
+                homeTeamName: matchManager.homeTeamName,
+                awayTeamName: matchManager.awayTeamName
+            ) { homePenaltyScore, awayPenaltyScore in
+                // 当点球大战结束后，这个闭包会被调用
+                matchManager.homePenaltyScore = homePenaltyScore
+                matchManager.awayPenaltyScore = awayPenaltyScore
+                matchManager.finishMatchAndReset()
+            }
+        }
         .animation(.easeInOut, value: matchManager.recommendedStoppageTime)
+        .confirmationDialog("End of Regulation Time", isPresented: $matchManager.isShowingEndGameOptions) {
+            Button("Finish Match") {
+                matchManager.finishMatchAndReset()
+            }
+            Button("Proceed to Extra Time") {
+                matchManager.startExtraTime()
+            }
+            Button("Proceed to Penalties") {
+                matchManager.startPenaltyShootout()
+            }
+            Button("Cancel", role: .cancel) {
+            }
+        }
     }
     
-    // MARK: - 时间格式化 (只显示 MM:SS)
+    // MARK: - 时间格式化
     private func formatTime(_ time: TimeInterval) -> String {
         let totalSeconds = Int(time.rounded(.down))
         let minutes = totalSeconds / 60
         let seconds = totalSeconds % 60
-        
         return String(format: "%02d:%02d", minutes, seconds)
     }
     

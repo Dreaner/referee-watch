@@ -20,7 +20,7 @@ struct UserManualView: View {
                     InstructionSection(
                         title: "Recording Events",
                         steps: [
-                            "During the match, tap the appropriate icon: ⚽️ for Goal, 🟥 for Card, 🔄 for Substitution.",
+                            "During the match, tap the appropriate icon: ⚽️ for Goal, 🟨 for Yellow Card, 🟥 for Red Card, 🔄 for Substitution.",
                             "Follow the on-screen prompts to select the team, player number, and other details using the keypad.",
                             "All events are automatically logged with a timestamp."
                         ]
