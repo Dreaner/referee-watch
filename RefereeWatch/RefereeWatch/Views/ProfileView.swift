@@ -14,86 +14,106 @@ struct ProfileView: View {
     @State private var syncStatus: String = "Not Synced"
     @State private var showingExportAlert = false
     @State private var showingNotificationSettings = false
+    @State private var showingUserManual = false // ✅ 1. 添加新的状态变量
     @State private var exportMessage: String = ""
 
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
-                Image(systemName: "person.circle.fill")
-                    .resizable()
-                    .frame(width: 100, height: 100)
-                    .foregroundColor(.blue)
+            ScrollView { // ✅ 2. 将 VStack 放入 ScrollView，以防内容过多
+                VStack(spacing: 20) {
+                    Image(systemName: "person.circle.fill")
+                        .resizable()
+                        .frame(width: 100, height: 100)
+                        .foregroundColor(.blue)
 
-                Text("Referee User")
-                    .font(.title)
-                    .bold()
+                    Text("Referee User")
+                        .font(.title)
+                        .bold()
 
-                Text("Certification: Level 1")
-                    .foregroundColor(.secondary)
+                    Text("Certification: Level 1")
+                        .foregroundColor(.secondary)
 
-                Text("Matches Managed: \(connectivityManager.allReports.count)")
-                    .foregroundColor(.secondary)
+                    Text("Matches Managed: \(connectivityManager.allReports.count)")
+                        .foregroundColor(.secondary)
 
-                Divider()
+                    Divider()
 
-                // 数据同步
-                Button {
-                    syncData()
-                } label: {
-                    HStack {
-                        Image(systemName: "arrow.clockwise")
-                        Text("Sync Data")
+                    // 数据同步
+                    Button {
+                        syncData()
+                    } label: {
+                        HStack {
+                            Image(systemName: "arrow.clockwise")
+                            Text("Sync Data")
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue.opacity(0.2))
+                        .cornerRadius(8)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.blue.opacity(0.2))
-                    .cornerRadius(8)
-                }
 
-                Text("Sync Status: \(syncStatus)")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                    Text("Sync Status: \(syncStatus)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
 
-                // 数据导出
-                Button {
-                    exportData()
-                    showingExportAlert = true
-                } label: {
-                    HStack {
-                        Image(systemName: "square.and.arrow.up")
-                        Text("Export Data")
+                    // 数据导出
+                    Button {
+                        exportData()
+                        showingExportAlert = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "square.and.arrow.up")
+                            Text("Export Data")
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.green.opacity(0.2))
+                        .cornerRadius(8)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.green.opacity(0.2))
-                    .cornerRadius(8)
-                }
-                .alert(exportMessage, isPresented: $showingExportAlert) {
-                    Button("OK", role: .cancel) {}
-                }
-
-                // 通知设置
-                Button {
-                    showingNotificationSettings = true
-                } label: {
-                    HStack {
-                        Image(systemName: "bell")
-                        Text("Notification Settings")
+                    .alert(exportMessage, isPresented: $showingExportAlert) {
+                        Button("OK", role: .cancel) {}
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.orange.opacity(0.2))
-                    .cornerRadius(8)
-                }
-                .sheet(isPresented: $showingNotificationSettings) {
-                    NotificationSettingsView()
-                }
 
-                Spacer()
+                    // 通知设置
+                    Button {
+                        showingNotificationSettings = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "bell")
+                            Text("Notification Settings")
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.orange.opacity(0.2))
+                        .cornerRadius(8)
+                    }
+                    .sheet(isPresented: $showingNotificationSettings) {
+                        NotificationSettingsView()
+                    }
+                    
+                    // ✅ 3. 添加新的用户手册按钮
+                    Button {
+                        showingUserManual = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "questionmark.circle")
+                            Text("User Manual")
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.purple.opacity(0.2))
+                        .cornerRadius(8)
+                    }
+                    .sheet(isPresented: $showingUserManual) {
+                        UserManualView() // ✅ 4. 当按钮被点击时，显示 UserManualView
+                    }
 
-                Text("App Version: 1.0.0")
-                    .font(.footnote)
-                    .foregroundColor(.secondary)
+                    Spacer()
+
+                    Text("App Version: 1.0.0")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                }
             }
             .padding()
             .navigationTitle("Profile")
@@ -169,4 +189,3 @@ struct NotificationSettingsView: View {
 #Preview {
     ProfileView(connectivityManager: iPhoneConnectivityManager.shared)
 }
-

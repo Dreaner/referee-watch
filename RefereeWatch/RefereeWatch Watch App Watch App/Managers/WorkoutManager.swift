@@ -19,7 +19,6 @@ class WorkoutManager: NSObject, ObservableObject {
     private var session: HKWorkoutSession?
     private var builder: HKLiveWorkoutBuilder?
     
-    // ✅ 关键：routeBuilder 必须被声明为可选类型 (?)
     private var routeBuilder: HKWorkoutRouteBuilder?
     
     @Published private(set) var running: Bool = false
@@ -30,12 +29,16 @@ class WorkoutManager: NSObject, ObservableObject {
     
     override init() {
         super.init()
-        requestAuthorization()
+        // ✅ 修复：只在非预览环境下请求权限
+        if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == nil {
+            requestAuthorization()
+        }
     }
     
     // MARK: - 权限请求
     private func requestAuthorization() {
         let typesToShare: Set = [
+            HKObjectType.workoutType(),
             HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!,
             HKSeriesType.workoutRoute()
         ]
@@ -65,7 +68,6 @@ class WorkoutManager: NSObject, ObservableObject {
             session = try HKWorkoutSession(healthStore: healthStore, configuration: configuration)
             builder = session?.associatedWorkoutBuilder()
             
-            // 因为 routeBuilder 是可选的，所以这里的初始化也是安全的
             routeBuilder = HKWorkoutRouteBuilder(healthStore: healthStore, device: nil)
             
             session?.delegate = self
@@ -106,7 +108,7 @@ class WorkoutManager: NSObject, ObservableObject {
         self.stopLocalTimer()
     }
     
-    // MARK: - Local Timer Management
+    // MARK: - Local Timer Management (保持不变)
     private func stopLocalTimer() {
         localTimer?.invalidate()
         localTimer = nil
@@ -140,20 +142,12 @@ extension WorkoutManager: HKWorkoutSessionDelegate {
                         
                         print("💾 Workout saved to Health App.")
                         
-                        // ✅ 关键：检查 routeBuilder 是否存在，然后安全地调用它的方法
-                        guard let routeBuilder = self.routeBuilder else {
-                            // 如果没有 routeBuilder，直接重置状态
-                            self.resetState()
-                            return
-                        }
-                        
-                        routeBuilder.finishRoute(with: workout, metadata: nil) { (route, error) in
+                        self.routeBuilder?.finishRoute(with: workout, metadata: nil) { (route, error) in
                             if let error = error {
                                 print("❌ Error finishing route: \(error.localizedDescription)")
                             } else if route != nil {
                                 print("💾 Route saved to workout successfully.")
                             }
-                            
                             // 无论路线是否成功保存，这都是最后一步，所以在这里重置状态
                             self.resetState()
                         }
