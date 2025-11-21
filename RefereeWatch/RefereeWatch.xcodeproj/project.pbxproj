@@ -445,6 +445,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "RefereeWatch Watch App";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "To read your heart rate and distance data, providing fitness statistics in your post-match reports.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "To record your match activity and duration, ensuring uninterrupted match timing and saving the workout data to the Health App.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "To track your running route on a map during the match";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.dreaner.RefereeWatch;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -482,6 +483,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "RefereeWatch Watch App";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "To read your heart rate and distance data, providing fitness statistics in your post-match reports.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "To record your match activity and duration, ensuring uninterrupted match timing and saving the workout data to the Health App.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "To track your running route on a map during the match";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.dreaner.RefereeWatch;
 				LD_RUNPATH_SEARCH_PATHS = (
