@@ -15,7 +15,6 @@ struct CurrentMatchView: View {
     @State private var editingAwayTeam = false
     @State private var selectedReport: MatchReport?
     
-    // ✅ 修复 3: 计算红牌数
     private func getRedCardCount(for team: String, in report: MatchReport) -> Int {
         return report.events.filter { $0.type == .card && $0.cardType == .red && $0.team.lowercased() == team.lowercased() }.count
     }
@@ -24,7 +23,6 @@ struct CurrentMatchView: View {
         NavigationView {
             VStack(spacing: 15) {
                 if let match = connectivityManager.allReports.last {
-                    // MARK: - 队伍名称 (保持不变)
                     HStack {
                         if editingHomeTeam {
                             TextField("Home Team", text: Binding(
@@ -59,14 +57,12 @@ struct CurrentMatchView: View {
                         }
                     }
 
-                    // MARK: - 比分编辑 (同时显示红牌)
                     HStack(spacing: 20) {
                         VStack(alignment: .leading) {
                             Stepper("Home: \(match.homeScore)", value: Binding(
                                 get: { match.homeScore },
                                 set: { updateScore(for: match, team: "home", newValue: $0) }
                             ), in: 0...99)
-                            // ✅ 修复 3: 主队红牌标注
                             if getRedCardCount(for: "home", in: match) > 0 {
                                 HStack {
                                     Image(systemName: "square.fill")
@@ -84,7 +80,6 @@ struct CurrentMatchView: View {
                                 get: { match.awayScore },
                                 set: { updateScore(for: match, team: "away", newValue: $0) }
                             ), in: 0...99)
-                            // ✅ 修复 3: 客队红牌标注
                             if getRedCardCount(for: "away", in: match) > 0 {
                                 HStack {
                                     Image(systemName: "square.fill")
@@ -104,9 +99,6 @@ struct CurrentMatchView: View {
 
                     Divider()
 
-                    // MARK: - 快速添加事件 (已移除，符合修复 6)
-
-                    // MARK: - 事件列表 (保持不变)
                     List {
                         if match.events.isEmpty {
                             Text("No events yet.")
@@ -146,18 +138,15 @@ struct CurrentMatchView: View {
         }
     }
 
-    // MARK: - Helper Functions (已移除 addQuickEvent)
-    // ... (其他 helper functions 保持不变)
-    
     private func binding(for report: MatchReport) -> Binding<MatchReport> {
-        guard let index = connectivityManager.allReports.firstIndex(where: { $0.date == report.date }) else {
+        guard let index = connectivityManager.allReports.firstIndex(where: { $0.id == report.id }) else {
             fatalError("Match not found")
         }
         return $connectivityManager.allReports[index]
     }
 
     private func updateTeamName(for report: MatchReport, team: String, newName: String) {
-        guard let index = connectivityManager.allReports.firstIndex(where: { $0.date == report.date }) else { return }
+        guard let index = connectivityManager.allReports.firstIndex(where: { $0.id == report.id }) else { return }
         if team == "home" {
             connectivityManager.allReports[index].homeTeam = newName
         } else {
@@ -167,7 +156,7 @@ struct CurrentMatchView: View {
     }
 
     private func updateScore(for report: MatchReport, team: String, newValue: Int) {
-        guard let index = connectivityManager.allReports.firstIndex(where: { $0.date == report.date }) else { return }
+        guard let index = connectivityManager.allReports.firstIndex(where: { $0.id == report.id }) else { return }
         if team == "home" {
             connectivityManager.allReports[index].homeScore = newValue
         } else {
@@ -177,7 +166,7 @@ struct CurrentMatchView: View {
     }
 
     private func deleteEvent(at offsets: IndexSet, in report: MatchReport) {
-        guard let index = connectivityManager.allReports.firstIndex(where: { $0.date == report.date }) else { return }
+        guard let index = connectivityManager.allReports.firstIndex(where: { $0.id == report.id }) else { return }
         connectivityManager.allReports[index].events.remove(atOffsets: offsets)
         connectivityManager.saveReports()
     }
@@ -213,39 +202,42 @@ struct CurrentMatchView: View {
 }
 
 #Preview {
-    // ... (Preview code remains unchanged)
     let manager = iPhoneConnectivityManager.shared
 
+    // ✅ 修复：为所有 MatchEvent 添加 half 参数
     let sampleEvents = [
         MatchEvent(
             type: .goal,
             team: "Home",
+            half: 1,
             playerNumber: 9,
             goalType: .normal,
             cardType: nil,
             playerOut: nil,
             playerIn: nil,
-            timestamp: 12 * 60 // 12 分钟 → 720 秒
+            timestamp: 12 * 60
         ),
         MatchEvent(
             type: .card,
             team: "Away",
+            half: 1,
             playerNumber: 4,
             goalType: nil,
             cardType: .yellow,
             playerOut: nil,
             playerIn: nil,
-            timestamp: 30 * 60 // 30 分钟 → 1800 秒
+            timestamp: 30 * 60
         ),
         MatchEvent(
             type: .substitution,
             team: "Home",
+            half: 2,
             playerNumber: nil,
             goalType: nil,
             cardType: nil,
             playerOut: 10,
             playerIn: 18,
-            timestamp: 65 * 60 // 65 分钟 → 3900 秒
+            timestamp: 65 * 60
         )
     ]
 
@@ -264,4 +256,3 @@ struct CurrentMatchView: View {
 
     return CurrentMatchView(connectivityManager: manager)
 }
-

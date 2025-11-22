@@ -131,19 +131,20 @@ final class iPhoneConnectivityManager: NSObject, ObservableObject, WCSessionDele
             
             // ========== 👇 【添加的测试回退代码块】 👇 ==========
             print("📂 No saved reports found. Injecting 3-1 sample data for testing.")
+            
             let sampleEvents = [
                 // HOME GOALS (3 total)
-                MatchEvent(type: .goal, team: "home", playerNumber: 9, goalType: .normal, cardType: nil, playerOut: nil, playerIn: nil, timestamp: 15 * 60),
-                MatchEvent(type: .goal, team: "home", playerNumber: 7, goalType: .normal, cardType: nil, playerOut: nil, playerIn: nil, timestamp: 48 * 60),
-                MatchEvent(type: .goal, team: "home", playerNumber: 9, goalType: .normal, cardType: nil, playerOut: nil, playerIn: nil, timestamp: 75 * 60),
+                MatchEvent(type: .goal, team: "home", half: 1, playerNumber: 9, goalType: .normal, cardType: nil, playerOut: nil, playerIn: nil, timestamp: 15 * 60),
+                MatchEvent(type: .goal, team: "home", half: 2, playerNumber: 7, goalType: .normal, cardType: nil, playerOut: nil, playerIn: nil, timestamp: 48 * 60),
+                MatchEvent(type: .goal, team: "home", half: 2, playerNumber: 9, goalType: .normal, cardType: nil, playerOut: nil, playerIn: nil, timestamp: 75 * 60),
                         
                 // AWAY GOAL (1 total)
-                MatchEvent(type: .goal, team: "away", playerNumber: 11, goalType: .penalty, cardType: nil, playerOut: nil, playerIn: nil, timestamp: 90 * 60 + 20),
+                MatchEvent(type: .goal, team: "away", half: 2, playerNumber: 11, goalType: .penalty, cardType: nil, playerOut: nil, playerIn: nil, timestamp: 90 * 60 + 20),
 
                 // 其他事件
-                MatchEvent(type: .card, team: "away", playerNumber: 4, goalType: nil, cardType: .yellow, playerOut: nil, playerIn: nil, timestamp: 32 * 60),
-                MatchEvent(type: .substitution, team: "home", playerNumber: nil, goalType: nil, cardType: nil, playerOut: 10, playerIn: 18, timestamp: 60 * 60),
-                MatchEvent(type: .card, team: "away", playerNumber: 4, goalType: nil, cardType: .red, playerOut: nil, playerIn: nil, timestamp: 65 * 60)
+                MatchEvent(type: .card, team: "away", half: 1, playerNumber: 4, goalType: nil, cardType: .yellow, playerOut: nil, playerIn: nil, timestamp: 32 * 60),
+                MatchEvent(type: .substitution, team: "home", half: 2, playerNumber: nil, goalType: nil, cardType: nil, playerOut: 10, playerIn: 18, timestamp: 60 * 60),
+                MatchEvent(type: .card, team: "away", half: 2, playerNumber: 4, goalType: nil, cardType: .red, playerOut: nil, playerIn: nil, timestamp: 65 * 60)
             ]
 
             let testReport = MatchReport(

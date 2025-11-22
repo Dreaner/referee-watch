@@ -220,10 +220,10 @@ struct StatCard: View {
     let manager = iPhoneConnectivityManager.shared
 
     let events = [
-        MatchEvent(type: .goal, team: "home", playerNumber: 9, goalType: .normal, cardType: nil, playerOut: nil, playerIn: nil, timestamp: 600),
-        MatchEvent(type: .goal, team: "away", playerNumber: 10, goalType: .normal, cardType: nil, playerOut: nil, playerIn: nil, timestamp: 1200),
-        MatchEvent(type: .card, team: "home", playerNumber: 5, goalType: nil, cardType: .yellow, playerOut: nil, playerIn: nil, timestamp: 1500),
-        MatchEvent(type: .card, team: "away", playerNumber: 4, goalType: nil, cardType: .red, playerOut: nil, playerIn: nil, timestamp: 2000)
+        MatchEvent(type: .goal, team: "home", half: 1, playerNumber: 9, goalType: .normal, cardType: nil, playerOut: nil, playerIn: nil, timestamp: 600),
+        MatchEvent(type: .goal, team: "away", half: 2, playerNumber: 10, goalType: .normal, cardType: nil, playerOut: nil, playerIn: nil, timestamp: 1200),
+        MatchEvent(type: .card, team: "home", half: 1, playerNumber: 5, goalType: nil, cardType: .yellow, playerOut: nil, playerIn: nil, timestamp: 1500),
+        MatchEvent(type: .card, team: "away", half: 2, playerNumber: 4, goalType: nil, cardType: .red, playerOut: nil, playerIn: nil, timestamp: 2000)
     ]
 
     let match = MatchReport(
@@ -238,5 +238,6 @@ struct StatCard: View {
     )
 
     manager.allReports = [match]
+    
     return StatsView(connectivityManager: manager)
 }

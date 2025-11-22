@@ -27,7 +27,6 @@ class MatchManager: ObservableObject {
     // MARK: - Scores and state
     @Published var homeScore = 0
     @Published var awayScore = 0
-    // ✅ 新增：点球大战比分
     @Published var homePenaltyScore: Int? = nil
     @Published var awayPenaltyScore: Int? = nil
     
@@ -58,7 +57,6 @@ class MatchManager: ObservableObject {
     @Published var criticalFeedbackMessage: String? = nil
 
     @Published var isShowingEndGameOptions = false
-    // ✅ 新增：控制点球大战 sheet 的显示
     @Published var isShowingPenaltyShootout = false
 
     // MARK: - Match control: 左键 (Kick-off)
@@ -160,18 +158,14 @@ class MatchManager: ObservableObject {
         WKInterfaceDevice.current().play(.start)
     }
     
-    // ✅ 修改：实现 startPenaltyShootout
     func startPenaltyShootout() {
         isShowingEndGameOptions = false
         if workoutManager.running {
             workoutManager.endWorkout()
         }
-        // 显示点球大战 sheet
         isShowingPenaltyShootout = true
     }
 
-
-    // ✅ 修改：重置新增的变量
     func resetMatch() {
         if workoutManager.running {
              workoutManager.endWorkout()
@@ -215,14 +209,30 @@ class MatchManager: ObservableObject {
     
     func addGoal(team: String, playerNumber: Int, goalType: GoalType) {
         let event = MatchEvent(
-            type: .goal, team: team, playerNumber: playerNumber, goalType: goalType, cardType: nil, playerOut: nil, playerIn: nil, timestamp: workoutManager.elapsedTime
+            type: .goal, 
+            team: team, 
+            half: currentHalf, // ✅ 传递当前阶段
+            playerNumber: playerNumber, 
+            goalType: goalType, 
+            cardType: nil, 
+            playerOut: nil, 
+            playerIn: nil, 
+            timestamp: workoutManager.elapsedTime
         )
         addEvent(event)
     }
     
     func addCard(team: String, playerNumber: Int, cardType: CardType) {
         let event = MatchEvent(
-            type: .card, team: team, playerNumber: playerNumber, goalType: nil, cardType: cardType, playerOut: nil, playerIn: nil, timestamp: workoutManager.elapsedTime
+            type: .card, 
+            team: team, 
+            half: currentHalf, // ✅ 传递当前阶段
+            playerNumber: playerNumber, 
+            goalType: nil, 
+            cardType: cardType, 
+            playerOut: nil, 
+            playerIn: nil, 
+            timestamp: workoutManager.elapsedTime
         )
         addEvent(event)
         
@@ -231,7 +241,15 @@ class MatchManager: ObservableObject {
             
             if yellowCount == 2 {
                 let redEvent = MatchEvent(
-                    type: .card, team: team, playerNumber: playerNumber, goalType: nil, cardType: .red, playerOut: nil, playerIn: nil, timestamp: workoutManager.elapsedTime
+                    type: .card, 
+                    team: team, 
+                    half: currentHalf, // ✅ 传递当前阶段
+                    playerNumber: playerNumber, 
+                    goalType: nil, 
+                    cardType: .red, 
+                    playerOut: nil, 
+                    playerIn: nil, 
+                    timestamp: workoutManager.elapsedTime
                 )
                 addEvent(redEvent)
                 WKInterfaceDevice.current().play(.failure)
@@ -242,7 +260,15 @@ class MatchManager: ObservableObject {
     
     func addSubstitution(team: String, playerOut: Int, playerIn: Int) {
         let event = MatchEvent(
-            type: .substitution, team: team, playerNumber: nil, goalType: nil, cardType: nil, playerOut: playerOut, playerIn: playerIn, timestamp: workoutManager.elapsedTime
+            type: .substitution, 
+            team: team, 
+            half: currentHalf, // ✅ 传递当前阶段
+            playerNumber: nil, 
+            goalType: nil, 
+            cardType: nil, 
+            playerOut: playerOut, 
+            playerIn: playerIn, 
+            timestamp: workoutManager.elapsedTime
         )
         addEvent(event)
     }
@@ -288,7 +314,6 @@ class MatchManager: ObservableObject {
     }
 
     // MARK: - MatchReport
-    // ✅ 修改：在生成报告时包含点球大战比分
     func generateMatchReport() -> MatchReport {
         let finalFirstHalfTime = timeAtEndOfFirstHalf
         let finalSecondHalfTime = workoutManager.elapsedTime

@@ -101,6 +101,7 @@ struct AddMatchEventView: View {
         let newEvent = MatchEvent(
             type: selectedType,
             team: team,
+            half: half, // ✅ 修复：现在 'half' 变量存在了
             playerNumber: selectedType == .goal || selectedType == .card ? Int(playerNumber) : nil,
             goalType: selectedType == .goal ? goalType : nil,
             cardType: selectedType == .card ? cardType : nil,

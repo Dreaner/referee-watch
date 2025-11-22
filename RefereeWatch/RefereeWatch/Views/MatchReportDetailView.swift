@@ -45,9 +45,7 @@ struct MatchReportDetailView: View {
             }
 
             Section(header: Text("Duration")) {
-                // 确保 Stepper 和显示都以分钟为单位
                 if isEditing {
-                    // Stepper value is bound to minutes (Double)
                     Stepper("First Half: \(Int(editedReport.firstHalfDuration / 60.0)) mins",
                             value: Binding(
                                 get: { editedReport.firstHalfDuration / 60.0 },
@@ -104,7 +102,6 @@ struct MatchReportDetailView: View {
                 }
             }
 
-            // ✅ PDF Export Section
             Section {
                 Button {
                     exportPDF()
@@ -137,14 +134,12 @@ struct MatchReportDetailView: View {
         }
     }
 
-    // MARK: - PDF Export
     private func exportPDF() {
         let url = PDFReportGenerator.shared.generatePDF(for: report)
         generatedPDF = url
         showingShareSheet = true
     }
 
-    // MARK: - Helper Methods
     private func formatDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
@@ -161,7 +156,6 @@ struct MatchReportDetailView: View {
     }
 }
 
-// MARK: - ActivityView (Share Sheet)
 struct ActivityView: UIViewControllerRepresentable {
     var activityItems: [Any]
     func makeUIViewController(context: Context) -> UIActivityViewController {
@@ -170,58 +164,59 @@ struct ActivityView: UIViewControllerRepresentable {
     func updateUIViewController(_ vc: UIActivityViewController, context: Context) {}
 }
 
-// MARK: - Preview
 #Preview {
-    // 创建包含 3 个 Home Goal 和 1 个 Away Goal 的丰富事件列表
+    // ✅ 修复：为所有 MatchEvent 添加 half 参数
     let sampleEvents = [
-        // --- HOME GOALS (3 total: 9号进2个, 7号进1个) ---
         MatchEvent(
             type: .goal,
             team: "home",
+            half: 1,
             playerNumber: 9,
             goalType: .normal,
             cardType: nil,
             playerOut: nil,
             playerIn: nil,
-            timestamp: 15 * 60 // 15:00
+            timestamp: 15 * 60
         ),
         MatchEvent(
             type: .goal,
             team: "home",
+            half: 2,
             playerNumber: 7,
             goalType: .normal,
             cardType: nil,
             playerOut: nil,
             playerIn: nil,
-            timestamp: 48 * 60 // 48:00
+            timestamp: 48 * 60
         ),
         MatchEvent(
             type: .goal,
             team: "home",
+            half: 2,
             playerNumber: 9,
             goalType: .normal,
             cardType: nil,
             playerOut: nil,
             playerIn: nil,
-            timestamp: 75 * 60 // 75:00
+            timestamp: 75 * 60
         ),
         
-        // --- AWAY GOALS (1 total: 11号进1个) ---
         MatchEvent(
             type: .goal,
             team: "away",
+            half: 2,
             playerNumber: 11,
-            goalType: .penalty, // 点球
+            goalType: .penalty,
             cardType: nil,
             playerOut: nil,
             playerIn: nil,
-            timestamp: 90 * 60 + 20 // 90:20
+            timestamp: 90 * 60 + 20
         ),
 
-        // --- 其他事件（保留原有测试数据） ---
         MatchEvent(
             type: .card,
             team: "away",
+            half: 1,
             playerNumber: 4,
             goalType: nil,
             cardType: .yellow,
@@ -232,6 +227,7 @@ struct ActivityView: UIViewControllerRepresentable {
         MatchEvent(
             type: .substitution,
             team: "home",
+            half: 2,
             playerNumber: nil,
             goalType: nil,
             cardType: nil,
@@ -242,6 +238,7 @@ struct ActivityView: UIViewControllerRepresentable {
         MatchEvent(
             type: .card,
             team: "away",
+            half: 2,
             playerNumber: 4,
             goalType: nil,
             cardType: .red,
@@ -251,13 +248,12 @@ struct ActivityView: UIViewControllerRepresentable {
         )
     ]
 
-    // 确保 MatchReport 的比分与事件数量一致
     let testReport = MatchReport(
         date: Date().addingTimeInterval(-86400 * 3),
         homeTeam: "Dragons FC",
         awayTeam: "Eagles Utd",
-        homeScore: 3, // 匹配 3 个 Home Goal 事件
-        awayScore: 1, // 匹配 1 个 Away Goal 事件
+        homeScore: 3,
+        awayScore: 1,
         firstHalfDuration: 45 * 60,
         secondHalfDuration: 45 * 60,
         events: sampleEvents
