@@ -42,16 +42,21 @@ struct PenaltyShootoutView: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            // 比分显示
-            Text("\(homeTeamName) \(homeScore) - \(awayScore) \(awayTeamName)")
-                .font(.title3)
-                .fontWeight(.bold)
-                .minimumScaleFactor(0.8)
+            // 将比分和状态文字组合在一起，以确保布局稳定
+            VStack {
+                // 比分显示
+                Text("\(homeTeamName) \(homeScore) - \(awayScore) \(awayTeamName)")
+                    .font(.title3)
+                    .fontWeight(.bold)
+                    .minimumScaleFactor(0.8)
 
-            // 状态文字
-            Text(statusText)
-                .font(.headline)
-                .foregroundColor(.secondary)
+                // 状态文字
+                Text(statusText)
+                    .font(.headline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center) // 允许文本居中换行
+            }
+            .fixedSize(horizontal: false, vertical: true) // 允许垂直方向扩展以容纳换行文本
 
             Spacer()
 
@@ -133,6 +138,7 @@ struct PenaltyShootoutView: View {
     }
 }
 
+// MARK: Preview
 #Preview {
     PenaltyShootoutView(homeTeamName: "HOME", awayTeamName: "AWAY") { home, away in
         print("Final Penalty Score: \(home) - \(away)")

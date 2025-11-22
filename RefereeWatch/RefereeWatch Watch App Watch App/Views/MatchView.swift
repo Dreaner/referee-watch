@@ -32,27 +32,35 @@ struct MatchView: View {
         }
     }
 
+    // 使用标准的半场时长作为计时基准，而不是实际结束时间
     private var currentDisplayTime: TimeInterval {
         let currentSessionTime = matchManager.workoutManager.elapsedTime
         
         switch matchManager.currentHalf {
         case 1:
+            // 上半场进行中
             return currentSessionTime
         case 2:
+            // 进入中场休息，固定显示45:00
             if matchManager.isHalftime {
-                return matchManager.timeAtEndOfFirstHalf
+                return matchManager.halfDuration
             }
-            return matchManager.timeAtEndOfFirstHalf + currentSessionTime
+            // 下半场进行中，从45:00开始累加
+            return matchManager.halfDuration + currentSessionTime
         case 3:
+            // 准备开始加时赛，固定显示90:00
             if !matchManager.isRunning {
-                return matchManager.timeAtEndOfFirstHalf + matchManager.timeAtEndOfSecondHalf
+                return matchManager.halfDuration * 2
             }
-            return matchManager.timeAtEndOfFirstHalf + matchManager.timeAtEndOfSecondHalf + currentSessionTime
+            // 加时赛上半场进行中，从90:00开始累加
+            return (matchManager.halfDuration * 2) + currentSessionTime
         case 4:
+            // 加时赛中场休息，固定显示105:00
             if matchManager.isHalftime {
-                return matchManager.timeAtEndOfFirstHalf + matchManager.timeAtEndOfSecondHalf + matchManager.timeAtEndOfETFirstHalf
+                return (matchManager.halfDuration * 2) + matchManager.extraTimeHalfDuration
             }
-            return matchManager.timeAtEndOfFirstHalf + matchManager.timeAtEndOfSecondHalf + matchManager.timeAtEndOfETFirstHalf + currentSessionTime
+            // 加时赛下半场进行中，从105:00开始累加
+            return (matchManager.halfDuration * 2) + matchManager.extraTimeHalfDuration + currentSessionTime
         default:
             return 0
         }
@@ -199,27 +207,25 @@ struct MatchView: View {
         .sheet(isPresented: $matchManager.isSubstitutionSheetPresented) {
             SubstitutionSheet(matchManager: matchManager)
         }
-        // ✅ 新增：添加用于显示点球大战界面的 sheet
         .sheet(isPresented: $matchManager.isShowingPenaltyShootout) {
             PenaltyShootoutView(
                 homeTeamName: matchManager.homeTeamName,
                 awayTeamName: matchManager.awayTeamName
             ) { homePenaltyScore, awayPenaltyScore in
-                // 当点球大战结束后，这个闭包会被调用
                 matchManager.homePenaltyScore = homePenaltyScore
                 matchManager.awayPenaltyScore = awayPenaltyScore
                 matchManager.finishMatchAndReset()
             }
         }
         .animation(.easeInOut, value: matchManager.recommendedStoppageTime)
-        .confirmationDialog("End of Regulation Time", isPresented: $matchManager.isShowingEndGameOptions) {
+        .confirmationDialog("Regulation Time End", isPresented: $matchManager.isShowingEndGameOptions) {
             Button("Finish Match") {
                 matchManager.finishMatchAndReset()
             }
-            Button("Proceed to Extra Time") {
+            Button("Extra Time") {
                 matchManager.startExtraTime()
             }
-            Button("Proceed to Penalties") {
+            Button("Penalties") {
                 matchManager.startPenaltyShootout()
             }
             Button("Cancel", role: .cancel) {
