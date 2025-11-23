@@ -22,6 +22,8 @@ struct KeypadNumberInputSheet: View {
     var onConfirm: () -> Void
     
     @State private var inputString: String = ""
+    @FocusState private var isVoiceInputActive: Bool
+    
     private let maxDigits = 3
     // 最终确定的 UI 参数
     private let buttonHeight: CGFloat = 40
@@ -46,22 +48,14 @@ struct KeypadNumberInputSheet: View {
     // MARK: Body
     var body: some View {
         Grid(horizontalSpacing: keypadSpacing, verticalSpacing: 5) {
-            // MARK: - Display & Confirm Area
+            // MARK: - Display Area
             GridRow {
                 Text(inputString.isEmpty ? "No." : inputString)
-                    .font(.title)
-                    .fontWeight(.bold) // 在这里将文字加粗
+                    .font(.largeTitle) // 从 .title 改为 .largeTitle，使字体更大
+                    .fontWeight(.bold)
                     .minimumScaleFactor(0.5)
-                    .gridCellColumns(2) // 关键：让这个视图占据两列
-                    .frame(maxWidth: .infinity, alignment: .center) // 改为居中对齐
-
-                // 确认按钮 (蓝色 Checkmark)
-                Button(action: confirmInput) {
-                    Image(systemName: "checkmark")
-                        .font(.title2)
-                }
-                .tint(.blue)
-                .frame(maxWidth: .infinity, minHeight: buttonHeight, idealHeight: buttonHeight, maxHeight: buttonHeight)
+                    .gridCellColumns(3) // 更新：让显示区域占据全部三列
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .center) // 增加最小高度以稳定布局
             }
 
             // MARK: - Keypad Grid
@@ -81,11 +75,19 @@ struct KeypadNumberInputSheet: View {
                 createNumberButton(digit: 9)
             }
             GridRow {
-                // 占位符现在是 Grid 中的一个空单元格
-                Color.clear
+                // 语音输入按钮
+                Button(action: {
+                    isVoiceInputActive = true
+                }) {
+                    Image(systemName: "mic.fill")
+                        .font(.title2)
+                }
+                .tint(.orange)
+                .frame(maxWidth: .infinity, minHeight: buttonHeight, idealHeight: buttonHeight, maxHeight: buttonHeight)
                 
                 createNumberButton(digit: 0)
                 
+                // 数字删除按钮
                 Button(action: deleteDigit) {
                     Image(systemName: "delete.left.fill")
                         .font(.title2)
@@ -96,6 +98,32 @@ struct KeypadNumberInputSheet: View {
         }
         .padding(.vertical, paddingVertical)
         .padding(.horizontal, 5)
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button {
+                    confirmInput()
+                } label: {
+                    Image(systemName: "checkmark")
+                }
+                .disabled(inputString.isEmpty || Int(inputString) == 0)
+            }
+        }
+        .onChange(of: inputString) {
+            // 确保输入始终是数字且不超过最大长度
+            let filtered = inputString.filter { $0.isNumber }
+            if filtered.count > maxDigits {
+                inputString = String(filtered.prefix(maxDigits))
+            } else if filtered != inputString {
+                inputString = filtered
+            }
+        }
+        .background {
+            // 隐藏的 TextField, 用于触发系统键盘/语音输入
+            TextField("Number input", text: $inputString)
+                .focused($isVoiceInputActive)
+                .opacity(0)
+                .frame(width: 0, height: 0)
+        }
     }
     
     // MARK: - Logic (保持不变)
@@ -131,8 +159,11 @@ struct KeypadNumberInputSheet: View {
     struct Wrapper: View {
         @State var num: Int? = 10
         var body: some View {
-            KeypadNumberInputSheet(selectedNumber: $num) {
-                print("Confirmed: \(num ?? 0)")
+            // 将视图包装在 NavigationStack 中以在预览中显示工具栏
+            NavigationStack {
+                KeypadNumberInputSheet(selectedNumber: $num) {
+                    print("Confirmed: \(num ?? 0)")
+                }
             }
         }
     }

@@ -16,12 +16,15 @@ struct AddMatchEventView: View {
 
     @State private var selectedType: EventType = .goal
     @State private var team: String = "home"
+    @State private var half: Int = 1
     @State private var playerNumber: String = ""
     @State private var goalType: GoalType = .normal
     @State private var cardType: CardType = .yellow
     @State private var playerOut: String = ""
     @State private var playerIn: String = ""
-    @State private var minute: Double = 0
+    
+    // ✅ 修复 1: 将 minute 类型改为 String
+    @State private var minuteInput: String = ""
 
     var body: some View {
         NavigationView {
@@ -42,10 +45,13 @@ struct AddMatchEventView: View {
                     }
                     .pickerStyle(SegmentedPickerStyle())
                 }
-
+                
+                // ✅ 修复 2: 替换为 TextField 键盘输入
                 Section(header: Text("Minute")) {
-                    Stepper("\(Int(minute))'", value: $minute, in: 0...120, step: 1)
+                    TextField("Minute (0-120)", text: $minuteInput)
+                        .keyboardType(.numberPad)
                 }
+
 
                 if selectedType == .goal {
                     Section(header: Text("Goal Info")) {
@@ -98,16 +104,27 @@ struct AddMatchEventView: View {
     }
 
     private func addEvent() {
+        
+        // 确保 minuteInput 是一个有效的数字，并转换为 TimeInterval (秒)
+        let minuteValue = Double(minuteInput) ?? 0.0
+        let timestampSeconds = minuteValue * 60.0
+        
+        // 确保 player numbers 是有效的数字
+        let playerNum = Int(playerNumber)
+        let playerOutNum = Int(playerOut)
+        let playerInNum = Int(playerIn)
+
         let newEvent = MatchEvent(
             type: selectedType,
             team: team,
-            half: half, // ✅ 修复：现在 'half' 变量存在了
-            playerNumber: selectedType == .goal || selectedType == .card ? Int(playerNumber) : nil,
+            half: half,
+            playerNumber: selectedType == .goal || selectedType == .card ? playerNum : nil,
             goalType: selectedType == .goal ? goalType : nil,
             cardType: selectedType == .card ? cardType : nil,
-            playerOut: selectedType == .substitution ? Int(playerOut) : nil,
-            playerIn: selectedType == .substitution ? Int(playerIn) : nil,
-            timestamp: minute * 60
+            playerOut: selectedType == .substitution ? playerOutNum : nil,
+            playerIn: selectedType == .substitution ? playerInNum : nil,
+            // ✅ 修复 3: 使用转换后的 timestamp
+            timestamp: timestampSeconds
         )
 
         report.events.append(newEvent)
@@ -127,3 +144,4 @@ struct AddMatchEventView: View {
     )
     AddMatchEventView(report: .constant(sampleReport))
 }
+

@@ -2,7 +2,7 @@
 //  PenaltyShootoutView.swift
 //  RefereeWatch
 //
-//  Created by [Your Name] on [Date]
+//  Created by Xingnan Zhu on 22/11/2025
 //
 
 import SwiftUI
