@@ -43,6 +43,7 @@ class WorkoutManager: NSObject, ObservableObject {
             HKSeriesType.workoutRoute()
         ]
         let typesToRead: Set = [
+            HKObjectType.workoutType(), // 修正：添加这一行以满足 HealthKit 的要求
             HKQuantityType.quantityType(forIdentifier: .heartRate)!,
             HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)!,
             HKSeriesType.workoutRoute()
@@ -67,7 +68,6 @@ class WorkoutManager: NSObject, ObservableObject {
         do {
             session = try HKWorkoutSession(healthStore: healthStore, configuration: configuration)
             builder = session?.associatedWorkoutBuilder()
-            
             routeBuilder = HKWorkoutRouteBuilder(healthStore: healthStore, device: nil)
             
             session?.delegate = self
@@ -108,7 +108,7 @@ class WorkoutManager: NSObject, ObservableObject {
         self.stopLocalTimer()
     }
     
-    // MARK: - Local Timer Management (保持不变)
+    // MARK: - Local Timer Management
     private func stopLocalTimer() {
         localTimer?.invalidate()
         localTimer = nil

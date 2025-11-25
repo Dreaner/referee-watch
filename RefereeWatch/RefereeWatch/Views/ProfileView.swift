@@ -80,7 +80,7 @@ struct ProfileView: View {
                     } label: {
                         HStack {
                             Image(systemName: "bell")
-                            Text("Notification Settings")
+                            Text("Notifications")
                         }
                         .frame(maxWidth: .infinity)
                         .padding()
