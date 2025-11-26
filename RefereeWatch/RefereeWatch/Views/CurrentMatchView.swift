@@ -10,10 +10,8 @@ import SwiftUI
 
 struct CurrentMatchView: View {
     @ObservedObject var connectivityManager: iPhoneConnectivityManager
-    @State private var showingAddEventView = false
     @State private var editingHomeTeam = false
     @State private var editingAwayTeam = false
-    @State private var selectedReport: MatchReport?
     
     private func getRedCardCount(for team: String, in report: MatchReport) -> Int {
         return report.events.filter { $0.type == .card && $0.cardType == .red && $0.team.lowercased() == team.lowercased() }.count
@@ -114,35 +112,25 @@ struct CurrentMatchView: View {
                             .onDelete { deleteEvent(at: $0, in: match) }
                         }
                     }
-
-                    Button {
-                        selectedReport = match
-                        showingAddEventView = true
-                    } label: {
-                        Label("Add Event", systemImage: "plus")
-                    }
-                    .buttonStyle(.bordered)
-                    .padding(.top)
                 } else {
-                    Text("No current match data.")
-                        .foregroundColor(.gray)
+                    VStack {
+                        Spacer()
+                        Image(systemName: "moon.stars.fill")
+                            .font(.largeTitle)
+                            .foregroundColor(.gray)
+                            .padding(.bottom, 4)
+                        Text("No current match data.")
+                            .foregroundColor(.gray)
+                        Text("Finish a match on your watch to see it here.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                    }
                 }
             }
             .padding()
             .navigationTitle("Current Match")
-            .sheet(isPresented: $showingAddEventView) {
-                if let match = selectedReport {
-                    AddMatchEventView(report: binding(for: match))
-                }
-            }
         }
-    }
-
-    private func binding(for report: MatchReport) -> Binding<MatchReport> {
-        guard let index = connectivityManager.allReports.firstIndex(where: { $0.id == report.id }) else {
-            fatalError("Match not found")
-        }
-        return $connectivityManager.allReports[index]
     }
 
     private func updateTeamName(for report: MatchReport, team: String, newName: String) {

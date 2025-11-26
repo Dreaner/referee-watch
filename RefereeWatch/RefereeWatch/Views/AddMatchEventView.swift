@@ -22,8 +22,6 @@ struct AddMatchEventView: View {
     @State private var cardType: CardType = .yellow
     @State private var playerOut: String = ""
     @State private var playerIn: String = ""
-    
-    // ✅ 修复 1: 将 minute 类型改为 String
     @State private var minuteInput: String = ""
 
     var body: some View {
@@ -46,7 +44,6 @@ struct AddMatchEventView: View {
                     .pickerStyle(SegmentedPickerStyle())
                 }
                 
-                // ✅ 修复 2: 替换为 TextField 键盘输入
                 Section(header: Text("Minute")) {
                     TextField("Minute (0-120)", text: $minuteInput)
                         .keyboardType(.numberPad)
@@ -105,29 +102,42 @@ struct AddMatchEventView: View {
 
     private func addEvent() {
         
-        // 确保 minuteInput 是一个有效的数字，并转换为 TimeInterval (秒)
-        let minuteValue = Double(minuteInput) ?? 0.0
-        let timestampSeconds = minuteValue * 60.0
-        
-        // 确保 player numbers 是有效的数字
+        // 解析分钟输入，支持 "90+2" 格式
+        let components = minuteInput.split(separator: "+").map { String($0) }
+        let mainMinutes = Double(components.first ?? "0") ?? 0.0
+        let stoppageMinutes = components.count > 1 ? (Double(components.last ?? "0") ?? 0.0) : 0.0
+        let totalMinutes = mainMinutes + stoppageMinutes
+        let timestampSeconds = totalMinutes * 60.0
+
         let playerNum = Int(playerNumber)
         let playerOutNum = Int(playerOut)
         let playerInNum = Int(playerIn)
 
+        // 根据分钟数自动判断是哪个半场
+        let halfForEvent = totalMinutes <= 45 ? 1 : 2
+
         let newEvent = MatchEvent(
             type: selectedType,
             team: team,
-            half: half,
+            half: halfForEvent,
             playerNumber: selectedType == .goal || selectedType == .card ? playerNum : nil,
             goalType: selectedType == .goal ? goalType : nil,
             cardType: selectedType == .card ? cardType : nil,
             playerOut: selectedType == .substitution ? playerOutNum : nil,
             playerIn: selectedType == .substitution ? playerInNum : nil,
-            // ✅ 修复 3: 使用转换后的 timestamp
             timestamp: timestampSeconds
         )
 
         report.events.append(newEvent)
+        
+        // 如果是进球事件，自动更新比分
+        if newEvent.type == .goal {
+            if newEvent.team == "home" {
+                report.homeScore += 1
+            } else {
+                report.awayScore += 1
+            }
+        }
     }
 }
 
