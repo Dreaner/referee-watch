@@ -10,8 +10,10 @@ import SwiftUI
 
 struct SettingsView: View {
     @ObservedObject var matchManager: MatchManager
+    
+    @State private var isShowingHomeColorPicker = false
+    @State private var isShowingAwayColorPicker = false
 
-    // 创建一个绑定，将 Stepper 的整数分钟值 转换为 MatchManager 的秒数
     private var halfDurationMinutes: Binding<Int> {
         Binding<Int>(
             get: { Int(self.matchManager.halfDuration / 60) },
@@ -24,38 +26,80 @@ struct SettingsView: View {
             VStack(spacing: 16) {
                 // 半场时长设置
                 VStack(alignment: .leading) {
-                    Text("Match Rules")
+                    Text("Half Duration")
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .padding(.bottom, 2)
                     
-                    // 修复：将 Stepper 拆分为文本和控件，以自定义字体大小
                     HStack {
-                        Text("Half Duration: \(halfDurationMinutes.wrappedValue) min")
-                            .font(.body) // 将字体缩小到标准大小
+                        Text("\(halfDurationMinutes.wrappedValue) min")
+                            .font(.body)
                         Spacer()
                         Stepper("", value: halfDurationMinutes, in: 5...60, step: 5)
-                            .labelsHidden() // 隐藏 Stepper 自身的标签
+                            .labelsHidden()
                     }
                 }
 
                 Divider()
 
-                // 球队名称设置
+                // 球队设置
                 VStack(alignment: .leading) {
-                    Text("Team Names")
+                    Text("Teams")
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
-                    TextField("Home Team", text: $matchManager.homeTeamName)
-                    TextField("Away Team", text: $matchManager.awayTeamName)
+                    // 主队设置
+                    HStack {
+                        Button(action: { isShowingHomeColorPicker = true }) {
+                            Circle()
+                                .fill(matchManager.homeTeamColor.color)
+                                .frame(width: 28, height: 28)
+                                .overlay(
+                                    Circle().stroke(Color.gray, lineWidth: matchManager.homeTeamColor == .white ? 1 : 0)
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        
+                        TextField("Home Team", text: $matchManager.homeTeamName)
+                    }
+                    
+                    // 客队设置
+                    HStack {
+                        Button(action: { isShowingAwayColorPicker = true }) {
+                            Circle()
+                                .fill(matchManager.awayTeamColor.color)
+                                .frame(width: 28, height: 28)
+                                .overlay(
+                                    Circle().stroke(Color.gray, lineWidth: matchManager.awayTeamColor == .white ? 1 : 0)
+                                )
+                        }
+                        .buttonStyle(.plain)
+
+                        TextField("Away Team", text: $matchManager.awayTeamName)
+                    }
                 }
                 
                 Spacer()
             }
             .padding()
         }
-        .navigationTitle("Settings") // 为可访问性添加标题
+        .navigationTitle("Settings")
+        .sheet(isPresented: $isShowingHomeColorPicker) {
+            NavigationView {
+                ColorPaletteView(
+                    selectedColor: $matchManager.homeTeamColor,
+                    title: "Home Color"
+                )
+            }
+        }
+        .sheet(isPresented: $isShowingAwayColorPicker) {
+            NavigationView {
+                ColorPaletteView(
+                    selectedColor: $matchManager.awayTeamColor,
+                    title: "Away Color"
+                )
+            }
+        }
     }
 }
 

@@ -23,6 +23,9 @@ class MatchManager: ObservableObject {
     // MARK: - Teams
     @Published var homeTeamName = "HOME"
     @Published var awayTeamName = "AWAY"
+    // MARK: - Colores
+    @Published var homeTeamColor: TeamColor = .red
+    @Published var awayTeamColor: TeamColor = .blue
 
     // MARK: - Scores and state
     @Published var homeScore = 0
