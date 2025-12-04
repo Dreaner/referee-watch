@@ -30,7 +30,7 @@ struct MainView: View {
     }
 }
 
-// MARK: - 预览
+// MARK: Preview
 #Preview {
     MainView()
 }
