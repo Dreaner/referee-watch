@@ -48,7 +48,7 @@ struct SettingsView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
-                    // 主队设置
+                    // Home
                     HStack {
                         Button(action: { isShowingHomeColorPicker = true }) {
                             Circle()
@@ -63,7 +63,7 @@ struct SettingsView: View {
                         TextField("Home Team", text: $matchManager.homeTeamName)
                     }
                     
-                    // 客队设置
+                    // Away
                     HStack {
                         Button(action: { isShowingAwayColorPicker = true }) {
                             Circle()

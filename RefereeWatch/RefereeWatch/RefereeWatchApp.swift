@@ -9,8 +9,7 @@ import SwiftUI
 
 @main
 struct RefereeWatchApp: App {
-    // 1. 添加一个状态变量，用来控制启动画面的显示状态
-    @State private var showLaunchScreen = true
+    @State private var showLaunchScreen = true  // 控制启动画面的显示状态
 
     var body: some Scene {
         WindowGroup {
@@ -22,11 +21,11 @@ struct RefereeWatchApp: App {
                 // 如果 showLaunchScreen 为 true，就在上层显示 LaunchView
                 if showLaunchScreen {
                     LaunchView()
-                        .transition(.opacity) // 为消失动画设置一个平滑的淡出效果
+                        .transition(.opacity) // 消失动画设置平滑的淡出效果
                 }
             }
             .onAppear {
-                // 3. 设置一个定时器，在 3 秒后执行操作
+                // 设置一个定时器，在 3 秒后执行操作
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
                     // 使用 withAnimation 来让状态改变产生动画效果
                     withAnimation {

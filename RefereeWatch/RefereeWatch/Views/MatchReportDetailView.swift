@@ -165,7 +165,6 @@ struct ActivityView: UIViewControllerRepresentable {
 }
 
 #Preview {
-    // ✅ 修复：为所有 MatchEvent 添加 half 参数
     let sampleEvents = [
         MatchEvent(
             type: .goal,
